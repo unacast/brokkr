@@ -1,14 +1,5 @@
 .SILENT: ;
-BROKKR_HOME := /tmp/brokkr
-BROKKR_PLUGINS = help
-BROKKR_REPO = file:///${PWD}
+BROKKR_PLUGINS = help-7d6637.mk 
 .DEFAULT_GOAL := help
-hei:
-	@echo $(BROKKR_HOME)
-	@echo $(_BROKKR_TARGETS)
-
-.PHONY: clear
-clear: ## Clears local output folders
-	rm -r /tmp/brokkr
 
 -include ./brokkr/brokkr.mk
