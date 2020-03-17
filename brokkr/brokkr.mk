@@ -30,7 +30,8 @@ $(addprefix .brokkr/,$(_BROKKR_PLUGIN_PATHS)): $(_BROKKR_PLUGIN_SUBFOLDERS)
 	echo "Downloading $${url}";\
 	curl --fail -s "$${url}" -o $@;\
 
-brokkr-clean: ## Clean up the .brokkr folder. Triggers a new download of plugins.
+.PHONY: clean.brokkr
+clean.brokkr: ## Clean up the .brokkr folder. Triggers a new download of plugins.
 	rm -r .brokkr
 
 -include $(addprefix .brokkr/,$(_BROKKR_PLUGIN_PATHS))
