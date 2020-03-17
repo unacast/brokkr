@@ -1,8 +1,3 @@
-# BROKKR_HOME is where we store the downloaded Brokkr plugins
-ifndef BROKKR_HOME
-BROKKR_HOME := ~/.brokr
-endif
-
 # BROKKR_REPO is the plugins repository.
 # If it is a Github repo, we try to download the raw content of the mk file.
 # If not a Github repo, we use the url provided to curl the content
