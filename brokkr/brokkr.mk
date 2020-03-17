@@ -1,6 +1,5 @@
 # BROKKR_REPO is the plugins repository.
-# If it is a Github repo, we try to download the raw content of the mk file.
-# If not a Github repo, we use the url provided to curl the content
+# We guess that all non-http(s) plugins to recide here
 ifndef BROKKR_REPO
 BROKKR_REPO := judoole/brokkr
 endif
