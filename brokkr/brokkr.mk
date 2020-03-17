@@ -11,13 +11,21 @@ BROKKR_REPO := judoole/brokkr
 endif
 
 _BROKKR_PLUGIN_PATHS = $(filter-out http%,$(BROKKR_PLUGINS)) $(subst /,!,$(subst :,§,$(filter http%,$(BROKKR_PLUGINS))))
+_BROKKR_PLUGIN_SUBFOLDERS = $(addprefix .brokkr/,$(dir $(filter-out http%,$(BROKKR_PLUGINS))))
 
+# Create the local Brokkr folder for storing all plugins
 .brokkr:
-	$(info Creating brokkr folder)
 	mkdir -p .brokkr
 
+# Create all subpaths for plugins
+$(_BROKKR_PLUGIN_SUBFOLDERS): .brokkr
+	mkdir -p $@
+
+# This is the target that downloads the referenced makefiles
+# Depends on .brokkr-folder and subfolders for plugins being loaded.
+# http(s) url's are converted to a filename safe download path
 .ONESHELL:
-$(addprefix .brokkr/,$(_BROKKR_PLUGIN_PATHS)): .brokkr
+$(addprefix .brokkr/,$(_BROKKR_PLUGIN_PATHS)): $(_BROKKR_PLUGIN_SUBFOLDERS)
 	@if [ `echo $@ | grep "^\.brokkr\/http.*"` ]; then\
 		url=`echo '$@' | sed 's/\.brokkr\///g' | sed 's/§/:/g' | sed 's/!/\//g'`; \
 	else \
