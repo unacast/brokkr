@@ -4,6 +4,11 @@ AIRFLOW_DOCKER_COMPOSE_FILE=$(AIRFLOW_WORKFOLDER)/docker-compose.yml
 AIRFLOW_DOCKER_ENVIRONMENT_VARS=$(AIRFLOW_WORKFOLDER)/docker-environment-variables.properties
 AIRFLOW_SENTINELS_FOLDER=$(AIRFLOW_WORKFOLDER)/sentinels
 COMPOSE_PROJECT_NAME=$(notdir $(CURDIR))
+
+ifndef AIRFLOW_WEBSERVER_PORT
+AIRFLOW_WEBSERVER_PORT=8080
+endif
+
 ifndef AIRFLOW_DAGS_FOLDER
 AIRFLOW_DAGS_FOLDER=dags
 endif
@@ -44,6 +49,13 @@ clean.airflow: ## Removes .airflow folder and docker containers
 error.airflow: ## List all dags, and filter errors
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run webserver airflow list_dags | grep -B5000 "DAGS"
 
+.PHONY: venv.airflow
+venv.airflow: ## Create a virtual environment folder for Code-completion and tests inside your IDE
+	virtualenv -p python3 .direnv; \
+	source .direnv/bin/activate; \
+	export AIRFLOW_GPL_UNIDECODE="yes"; \
+	pip install -r requirements.txt;
+
 
 #####################################################################
 # These are the docker files that we use during local runs of Airflow
@@ -70,7 +82,7 @@ services:
     working_dir: /code
     env_file: $${PWD}/$(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
     ports:
-      - "8080:8080"
+      - "$(AIRFLOW_WEBSERVER_PORT):8080"
     volumes:
       - "$${PWD}/:/code"
       - logs-volume:/root/airflow/logs/
