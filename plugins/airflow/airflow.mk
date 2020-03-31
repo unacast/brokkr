@@ -9,6 +9,10 @@ ifndef AIRFLOW_WEBSERVER_PORT
 AIRFLOW_WEBSERVER_PORT=8080
 endif
 
+ifndef AIRFLOW_VARIABLES
+AIRFLOW_VARIABLES=airflow-variables.json
+endif
+
 ifndef AIRFLOW_DAGS_FOLDER
 AIRFLOW_DAGS_FOLDER=dags
 endif
@@ -155,7 +159,7 @@ $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel: $(AIRFLOW_SENTINELS_FOLDER)/requir
 	# TODO: This does create not needed errors because variables are needed
 	# Could perhaps try to manipulate the DAGS_FOLDER
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow initdb
-	if [ -f "airflow-variables.json" ]; then \
+	if [ -f "$(AIRFLOW_VARIABLES)" ]; then \
 	 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow variables -i /code/airflow-variables.json; \
 	fi
 	touch $@
