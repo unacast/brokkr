@@ -2,6 +2,11 @@
 AIRFLOW_DOCKER_COMPOSE_FILE=.airflow/docker-compose.yml
 AIRFLOW_DOCKER_ENVIRONMENT_VARS=.airflow/docker-environment-variables.properties
 COMPOSE_PROJECT_NAME=$(notdir $(CURDIR))
+
+ifndef AIRFLOW_DAGS_FOLDER
+AIRFLOW_DAGS_FOLDER=dags
+endif
+
 ifndef AIRFLOW_REQUIREMENTS_TXT
 AIRFLOW_REQUIREMENTS_TXT := requirements.txt
 endif
@@ -22,11 +27,11 @@ logs: ## Tail the local logs
 
 .PHONY: test
 test: .airflow/sentinels/requirements.sentinel ## Run the tests found in /test
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e PYTHONPATH=dags:test test pytest
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e PYTHONPATH=$(AIRFLOW_DAGS_FOLDER):test test pytest
 
 .PHONY: flake8
 flake8: .airflow/sentinels/requirements.sentinel ## Run the flake8 agains dags folder
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm test flake8 dags
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm test flake8 $(AIRFLOW_DAGS_FOLDER)
 	@echo Flake 8 OK!s
 
 .PHONY: clean.airflow
@@ -144,7 +149,7 @@ $(AIRFLOW_DOCKER_ENVIRONMENT_VARS): .airflow/sentinels
 	echo AIRFLOW__CORE__EXECUTOR=LocalExecutor > $@
 	echo AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@db:5432/airflow >> $@
 	echo AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@db:5432/airflow >> $@
-	echo AIRFLOW__CORE__DAGS_FOLDER=/code/dags >> $@
+	echo AIRFLOW__CORE__DAGS_FOLDER=$(AIRFLOW_DAGS_FOLDER) >> $@
 	echo AIRFLOW__CORE__LOAD_EXAMPLES=False >> $@
 
 # Listens for local changes on airflow-env-vars.properties, if exists.
