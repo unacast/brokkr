@@ -160,7 +160,7 @@ $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel: $(AIRFLOW_SENTINELS_FOLDER)/requir
 	# Could perhaps try to manipulate the DAGS_FOLDER
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow initdb
 	if [ -f "$(AIRFLOW_VARIABLES)" ]; then \
-	 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow variables -i /code/airflow-variables.json; \
+	 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow variables -i /code/$(AIRFLOW_VARIABLES); \
 	fi
 	touch $@
 
