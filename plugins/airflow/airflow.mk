@@ -1,8 +1,9 @@
 .EXPORT_ALL_VARIABLES:
-AIRFLOW_DOCKER_COMPOSE_FILE=.airflow/docker-compose.yml
-AIRFLOW_DOCKER_ENVIRONMENT_VARS=.airflow/docker-environment-variables.properties
+AIRFLOW_WORKFOLDER=.airflow
+AIRFLOW_DOCKER_COMPOSE_FILE=$(AIRFLOW_WORKFOLDER)/docker-compose.yml
+AIRFLOW_DOCKER_ENVIRONMENT_VARS=$(AIRFLOW_WORKFOLDER)/docker-environment-variables.properties
+AIRFLOW_SENTINELS_FOLDER=$(AIRFLOW_WORKFOLDER)/sentinels
 COMPOSE_PROJECT_NAME=$(notdir $(CURDIR))
-
 ifndef AIRFLOW_DAGS_FOLDER
 AIRFLOW_DAGS_FOLDER=dags
 endif
@@ -11,33 +12,38 @@ ifndef AIRFLOW_REQUIREMENTS_TXT
 AIRFLOW_REQUIREMENTS_TXT := requirements.txt
 endif
 
-.PHONY: start
-start: .airflow/sentinels/db-init.sentinel ## Start Airflow server
+.PHONY: start.airflow
+start.airflow: $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel ## Start Airflow server
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d airflow
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d webserver
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d scheduler
 
-.PHONY: stop
-stop: .airflow/docker-compose.yml ## Stop running Airflow server
+.PHONY: stop.airflow
+stop.airflow: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Stop running Airflow server
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) stop
 
-.PHONY: logs
-logs: ## Tail the local logs
+.PHONY: logs.airflow
+logs.airflow: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Tail the local logs
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) logs --follow
 
-.PHONY: test
-test: .airflow/sentinels/requirements.sentinel ## Run the tests found in /test
+.PHONY: test.airflow
+test.airflow: $(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel ## Run the tests found in /test
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e PYTHONPATH=$(AIRFLOW_DAGS_FOLDER):test test pytest
 
-.PHONY: flake8
-flake8: .airflow/sentinels/requirements.sentinel ## Run the flake8 agains dags folder
+.PHONY: flake8.airflow
+flake8.airflow: $(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel ## Run the flake8 agains dags folder
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm test flake8 $(AIRFLOW_DAGS_FOLDER)
 	@echo Flake 8 OK!s
 
 .PHONY: clean.airflow
 clean.airflow: ## Removes .airflow folder and docker containers
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) down
-	rm -rf .airflow
+	rm -rf $(AIRFLOW_WORKFOLDER)
+
+.PHONY: list.airflow
+error.airflow: ## List all dags, and filter errors
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run webserver airflow list_dags | grep -B5000 "DAGS"
+
 
 #####################################################################
 # These are the docker files that we use during local runs of Airflow
@@ -55,12 +61,12 @@ services:
     - POSTGRES_PASSWORD=airflow
     - POSTGRES_DB=airflow
 
-  airflow:
+  webserver:
     depends_on:
       - db          
     build:
       context: $${PWD}
-      dockerfile: .airflow/Dockerfile
+      dockerfile: $(AIRFLOW_WORKFOLDER)/Dockerfile
     working_dir: /code
     env_file: $${PWD}/$(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
     ports:
@@ -75,7 +81,7 @@ services:
       - db          
     build:
       context: $${PWD}
-      dockerfile: .airflow/Dockerfile
+      dockerfile: $(AIRFLOW_WORKFOLDER)/Dockerfile
     working_dir: /code
     env_file: $${PWD}/$(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
     volumes:
@@ -86,7 +92,7 @@ services:
   test:
     build:
       context: $${PWD}
-      dockerfile: .airflow/Dockerfile
+      dockerfile: $(AIRFLOW_WORKFOLDER)/Dockerfile
     working_dir: /code
     volumes:
       - "$${PWD}/:/code"
@@ -115,46 +121,48 @@ export AIRFLOW_DOCKERFILE
 ############################################################
 
 # Create the working folder
-.airflow:
-	mkdir -p .airflow
+$(AIRFLOW_WORKFOLDER):
+	mkdir -p $(AIRFLOW_WORKFOLDER)
 
 # Create a sentinels folder. Sentinel files are empty files
 # used to make sure targets have run and skip them.
 # Other targets depends on these sentinel files
-.airflow/sentinels: .airflow
-	mkdir -p .airflow/sentinels
+$(AIRFLOW_SENTINELS_FOLDER): | $(AIRFLOW_WORKFOLDER)
+	mkdir -p $(AIRFLOW_WORKFOLDER)/sentinels
 
 # This creates the docker-compose.yml file.
-.airflow/docker-compose.yml: .airflow
-	echo "$$AIRFLOW_DOCKERFILE" > .airflow/Dockerfile
-	echo "$$AIRFLOW_DOCKER_COMPOSE" > .airflow/docker-compose.yml
+$(AIRFLOW_WORKFOLDER)/docker-compose.yml: | $(AIRFLOW_WORKFOLDER)
+	echo "$$AIRFLOW_DOCKERFILE" > $(AIRFLOW_WORKFOLDER)/Dockerfile
+	echo "$$AIRFLOW_DOCKER_COMPOSE" > $(AIRFLOW_WORKFOLDER)/docker-compose.yml
 
 # Ensure that we have started the PostgreSQL and ran airflow initdb
-.airflow/sentinels/db-init.sentinel: .airflow/sentinels/requirements.sentinel
+$(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel: $(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
 	# Wait for postgreSQL to start
 	sleep 5
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm airflow airflow initdb
+	# TODO: This does create not needed errors because variables are needed
+	# Could perhaps try to manipulate the DAGS_FOLDER
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow initdb
+	if [ -f "airflow-variables.json" ]; then \
+	 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow variables -i /code/airflow-variables.json; \
+	fi
 	touch $@
 
 # Ensure that python requirements have run.
 # Will rerun on changes on requirements.txt
-.airflow/sentinels/requirements.sentinel: $(AIRFLOW_REQUIREMENTS_TXT) .airflow/docker-compose.yml .airflow/sentinels/airflow-env-vars.properties.sentinel
+$(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel: $(AIRFLOW_REQUIREMENTS_TXT) $(AIRFLOW_WORKFOLDER)/docker-compose.yml \
+$(AIRFLOW_DOCKER_ENVIRONMENT_VARS) | $(AIRFLOW_SENTINELS_FOLDER)
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) build
 	touch $@
 
 # Docker environment file
 # Various AIRFLOW settings and url to database
-$(AIRFLOW_DOCKER_ENVIRONMENT_VARS): .airflow/sentinels
+$(AIRFLOW_DOCKER_ENVIRONMENT_VARS): | $(AIRFLOW_WORKFOLDER)
 	echo AIRFLOW__CORE__EXECUTOR=LocalExecutor > $@
 	echo AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@db:5432/airflow >> $@
 	echo AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@db:5432/airflow >> $@
 	echo AIRFLOW__CORE__DAGS_FOLDER=$(AIRFLOW_DAGS_FOLDER) >> $@
 	echo AIRFLOW__CORE__LOAD_EXAMPLES=False >> $@
-
-# Listens for local changes on airflow-env-vars.properties, if exists.
-.airflow/sentinels/%.sentinel: airflow-env-vars.properties
-	cat ${PWD}/airflow-env-vars.properties >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS) || echo "Skipping airflow-environment-variables.properties"
-	touch $@
-
-.airflow/sentinels/airflow-env-vars.properties.sentinel: $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+	if [ -f "airflow-env-vars.properties" ]; then \
+		cat ${PWD}/airflow-env-vars.properties >> $@; \
+	fi

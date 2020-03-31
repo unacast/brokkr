@@ -4,3 +4,6 @@
 # Vim swapfiles
 *.swm
 *.swo
+
+# IntelliJ
+.idea/
