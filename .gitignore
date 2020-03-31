@@ -1,2 +1,9 @@
 # Working folder for Brokkr
 .brokkr/
+
+# Vim swapfiles
+*.swm
+*.swo
+
+# IntelliJ
+.idea/

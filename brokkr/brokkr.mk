@@ -28,10 +28,14 @@ $(addprefix .brokkr/,$(_BROKKR_PLUGIN_PATHS)): $(_BROKKR_PLUGIN_SUBFOLDERS)
 		url="https://raw.githubusercontent.com/$(BROKKR_REPO)/$${plugin_version}/plugins$${plugin_path}"; \
 	fi;\
 	echo "Downloading $${url}";\
-	curl --fail -s "$${url}" -o $@;\
+	curl --fail -H "Cache-Control: no-cache" -s "$${url}" -o $@;\
 
 .PHONY: clean.brokkr
 clean.brokkr: ## Clean up the .brokkr folder. Triggers a new download of plugins.
 	rm -r .brokkr
+
+.PHONY: update.brokkr
+update.brokkr: ## Download latest Brokkr version
+	curl https://raw.githubusercontent.com/judoole/brokkr/master/scripts/install.sh | bash
 
 -include $(addprefix .brokkr/,$(_BROKKR_PLUGIN_PATHS))
