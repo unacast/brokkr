@@ -18,7 +18,7 @@ start: .airflow/sentinels/db-init.sentinel ## Start Airflow server
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d scheduler
 
 .PHONY: stop
-stop: .airflow/sentinels/requirements.sentinel ## Stop running Airflow server
+stop: .airflow/docker-compose.yml ## Stop running Airflow server
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) stop
 
 .PHONY: logs
