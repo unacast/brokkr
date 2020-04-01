@@ -15,3 +15,6 @@ BROKKR_PLUGINS = help/help-c09a208.mk \
                  https://raw.githubusercontent.com/judoole/brokkr/master/example/helloworld.mk
 .DEFAULT_GOAL := help
 ```
+
+## How does it work?
+It works by downloading the `Makefile` dependencies you add to your local folder. Once downloaded they are included into your `Makefile` so that every target is available.
