@@ -53,12 +53,12 @@ airflow.flake8: $(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel ## Run the fla
 	@echo Flake 8 OK!s
 
 .PHONY: airflow.clean
-airflow.clean: ## Removes .airflow folder and docker containers
+airflow.clean: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Removes .airflow folder and docker containers
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) down
 	rm -rf $(AIRFLOW_WORKFOLDER)
 
 .PHONY: airflow.error
-airflow.error: ## List all dags, and filter errors
+airflow.error: $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel ## List all dags, and filter errors
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run webserver airflow list_dags | grep -B5000 "DAGS"
 
 .PHONY: airflow.venv
