@@ -31,11 +31,11 @@ $(addprefix .brokkr/,$(_BROKKR_PLUGIN_PATHS)): $(_BROKKR_PLUGIN_SUBFOLDERS)
 	curl --fail -H "Cache-Control: no-cache" -s "$${url}" -o $@;\
 
 .PHONY: clean.brokkr
-clean.brokkr: ## Clean up the .brokkr folder. Triggers a new download of plugins.
+brokkr.clean: ## Clean up the .brokkr folder. Triggers a new download of plugins.
 	rm -r .brokkr
 
 .PHONY: update.brokkr
-update.brokkr: ## Download latest Brokkr version
+brokkr.update: ## Download latest Brokkr version
 	curl https://raw.githubusercontent.com/judoole/brokkr/master/scripts/install.sh | bash
 
 -include $(addprefix .brokkr/,$(_BROKKR_PLUGIN_PATHS))

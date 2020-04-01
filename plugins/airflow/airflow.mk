@@ -29,40 +29,40 @@ ifndef AIRFLOW_REQUIREMENTS_TXT
 AIRFLOW_REQUIREMENTS_TXT := requirements.txt
 endif
 
-.PHONY: start.airflow
-start.airflow: $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel ## Start Airflow server
+.PHONY: airflow.start
+airflow.start: $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel ## Start Airflow server
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d webserver
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d scheduler
 
-.PHONY: stop.airflow
-stop.airflow: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Stop running Airflow server
+.PHONY: airflow.stop
+airflow.stop: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Stop running Airflow server
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) stop
 
-.PHONY: logs.airflow
-logs.airflow: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Tail the local logs
+.PHONY: airflow.logs
+airflow.logs: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Tail the local logs
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) logs --follow
 
-.PHONY: test.airflow
-test.airflow: $(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel ## Run the tests found in /test
+.PHONY: airflow.test
+airflow.test: $(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel ## Run the tests found in /test
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e PYTHONPATH=$(AIRFLOW_DAGS_FOLDER):test test pytest
 
-.PHONY: flake8.airflow
-flake8.airflow: $(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel ## Run the flake8 agains dags folder
+.PHONY: airflow.flake8
+airflow.flake8: $(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel ## Run the flake8 agains dags folder
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm test flake8 $(AIRFLOW_DAGS_FOLDER)
 	@echo Flake 8 OK!s
 
-.PHONY: clean.airflow
-clean.airflow: ## Removes .airflow folder and docker containers
+.PHONY: airflow.clean
+airflow.clean: ## Removes .airflow folder and docker containers
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) down
 	rm -rf $(AIRFLOW_WORKFOLDER)
 
-.PHONY: list.airflow
-error.airflow: ## List all dags, and filter errors
+.PHONY: airflow.error
+airflow.error: ## List all dags, and filter errors
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run webserver airflow list_dags | grep -B5000 "DAGS"
 
-.PHONY: venv.airflow
-venv.airflow: ## Create a virtual environment folder for Code-completion and tests inside your IDE
+.PHONY: airflow.venv
+airflow.venv: ## Create a virtual environment folder for Code-completion and tests inside your IDE
 	virtualenv -p python3 $(AIRFLOW_VIRTUAL_ENV_FOLDER); \
 	source $(AIRFLOW_VIRTUAL_ENV_FOLDER)/bin/activate; \
 	export AIRFLOW_GPL_UNIDECODE="yes"; \
