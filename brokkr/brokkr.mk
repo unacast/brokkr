@@ -1,7 +1,7 @@
 # BROKKR_REPO is the plugins repository.
 # We guess that all non-http(s) plugins to recide here
 ifndef BROKKR_REPO
-BROKKR_REPO := judoole/brokkr
+BROKKR_REPO := unacast/brokkr
 endif
 
 _BROKKR_PLUGIN_PATHS = $(filter-out http%,$(BROKKR_PLUGINS)) $(subst /,!,$(subst :,§,$(filter http%,$(BROKKR_PLUGINS))))
