@@ -5,20 +5,24 @@ AIRFLOW_DOCKER_ENVIRONMENT_VARS=$(AIRFLOW_WORKFOLDER)/docker-environment-variabl
 AIRFLOW_SENTINELS_FOLDER=$(AIRFLOW_WORKFOLDER)/sentinels
 COMPOSE_PROJECT_NAME=$(notdir $(CURDIR))
 
+ifndef AIRFLOW_DOCKER_IMAGE
+AIRFLOW_DOCKER_IMAGE := python:3.6.6
+endif
+
 ifndef AIRFLOW_VIRTUAL_ENV_FOLDER
-AIRFLOW_VIRTUAL_ENV_FOLDER=.venv
+AIRFLOW_VIRTUAL_ENV_FOLDER := .venv
 endif
 
 ifndef AIRFLOW_WEBSERVER_PORT
-AIRFLOW_WEBSERVER_PORT=8080
+AIRFLOW_WEBSERVER_PORT := 8080
 endif
 
 ifndef AIRFLOW_VARIABLES
-AIRFLOW_VARIABLES=airflow-variables.json
+AIRFLOW_VARIABLES := airflow-variables.json
 endif
 
 ifndef AIRFLOW_DAGS_FOLDER
-AIRFLOW_DAGS_FOLDER=dags
+AIRFLOW_DAGS_FOLDER :=dags
 endif
 
 ifndef AIRFLOW_REQUIREMENTS_TXT
@@ -123,7 +127,7 @@ endef
 export AIRFLOW_DOCKER_COMPOSE
 
 define AIRFLOW_DOCKERFILE
-FROM python:3.6.6
+FROM $(AIRFLOW_DOCKER_IMAGE)
 
 RUN apt-get update
 RUN apt-get install openjdk-8-jre -y
@@ -133,7 +137,6 @@ ENV AIRFLOW_GPL_UNIDECODE="yes"
 RUN pip install -r /tmp/requirements.txt
 endef
 export AIRFLOW_DOCKERFILE
-
 
 ############################################################
 # These are various pre-steps that are needed before running
