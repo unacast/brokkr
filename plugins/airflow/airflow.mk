@@ -5,6 +5,10 @@ AIRFLOW_DOCKER_ENVIRONMENT_VARS=$(AIRFLOW_WORKFOLDER)/docker-environment-variabl
 AIRFLOW_SENTINELS_FOLDER=$(AIRFLOW_WORKFOLDER)/sentinels
 COMPOSE_PROJECT_NAME=$(notdir $(CURDIR))
 
+ifndef AIRFLOW_VIRTUAL_ENV_FOLDER
+AIRFLOW_VIRTUAL_ENV_FOLDER=.venv
+endif
+
 ifndef AIRFLOW_WEBSERVER_PORT
 AIRFLOW_WEBSERVER_PORT=8080
 endif
@@ -55,8 +59,8 @@ error.airflow: ## List all dags, and filter errors
 
 .PHONY: venv.airflow
 venv.airflow: ## Create a virtual environment folder for Code-completion and tests inside your IDE
-	virtualenv -p python3 .direnv; \
-	source .direnv/bin/activate; \
+	virtualenv -p python3 $(AIRFLOW_VIRTUAL_ENV_FOLDER); \
+	source $(AIRFLOW_VIRTUAL_ENV_FOLDER)/bin/activate; \
 	export AIRFLOW_GPL_UNIDECODE="yes"; \
 	pip install -r requirements.txt;
 
