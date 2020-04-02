@@ -97,7 +97,8 @@ services:
       - "$(AIRFLOW_WEBSERVER_PORT):8080"
     volumes:
       - "$${PWD}/:/code"
-      - logs-volume:/root/airflow/logs/
+      - data-volume:/root/airflow/logs/
+      - data-volume:/data/
     command: airflow webserver
 
   scheduler:
@@ -110,7 +111,8 @@ services:
     env_file: $${PWD}/$(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
     volumes:
       - "$${PWD}/:/code"
-      - logs-volume:/root/airflow/logs/
+      - data-volume:/root/airflow/logs/
+      - data-volume:/data/
     command: airflow scheduler
 
   test:
@@ -122,7 +124,7 @@ services:
       - "$${PWD}/:/code"
 
 volumes:
-  logs-volume:
+  data-volume:
 endef
 export AIRFLOW_DOCKER_COMPOSE
 
