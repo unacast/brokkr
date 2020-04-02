@@ -1,7 +1,7 @@
 #!/bin/bash
 
 mkdir -p brokkr
-curl --fail -s "https://raw.githubusercontent.com/judoole/brokkr/master/brokkr/brokkr.mk" -o brokkr/brokkr.mk
+curl --fail -s "https://raw.githubusercontent.com/unacast/brokkr/master/brokkr/brokkr.mk" -o brokkr/brokkr.mk
 
 if [ ! -f "Makefile" ]; then
 	echo '.SILENT: ;' > Makefile
