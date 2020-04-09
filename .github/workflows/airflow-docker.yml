@@ -1,16 +1,14 @@
-name: Validate Airflow Docker images
+name: Create Airflow Docker images
 
 on:
   push:
-    branches-ignore:
-      - 'master'
     paths:
       - 'plugins/airflow/docker/**'
       - '.github/workflows/airflow-docker.yml'
 
 jobs:
   validate:
-    name: Validate Airflow Docker images
+    name: Create Airflow Docker images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -34,3 +32,16 @@ jobs:
           AIRFLOW_VERSION: ${{ matrix.airflow-version }}
           AIRFLOW_EXTRAS: ${{ matrix.airflow-extras }}
         run: cd plugins/airflow/docker && make build
+
+      - name: Docker login
+        if: github.ref == 'refs/heads/master'
+        env:
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+      - name: Docker push
+        if: github.ref == 'refs/heads/master'
+        env:
+          AIRFLOW_TAG: ${{ matrix.airflow-version }}
+        run: make push
