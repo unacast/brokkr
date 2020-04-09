@@ -15,10 +15,15 @@ jobs:
       matrix:
         airflow-version: [1.10.2, 1.10.3, 1.10.6, 1.10.9]
         include:
-          - airflow-version: 1.10.2, 1.10.3
+          - airflow-version: 1.10.2
             airflow-extras: 'gcp_api,postgres'
-          - airflow-version: 1.10.6, 1.10.9
+          - airflow-version: 1.10.3
+            airflow-extras: 'gcp_api,postgres'
+          - airflow-version: 1.10.6
             airflow-extras: 'gcp,postgres'
+          - airflow-version: 1.10.9
+            airflow-extras: 'gcp,postgres'
+
     steps:
       - name: Checkout
         uses: actions/checkout@master
