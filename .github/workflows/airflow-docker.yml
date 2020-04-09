@@ -1,0 +1,30 @@
+name: Validate Airflow Docker images
+
+on:
+  push:
+    branches-ignore:
+      - 'master'
+    paths:
+      - 'plugins/airflow/docker/**'
+
+jobs:
+  validate:
+    name: Validate Airflow Docker images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        airflow-version: [1.10.2, 1.10.3, 1.10.6, 1.10.9]
+        include:
+          - airflow-version: 1.10.2, 1.10.3
+            airflow-extras: 'gcp_api,postgres'
+          - airflow-version: 1.10.6, 1.10.9
+            airflow-extras: 'gcp,postgres'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+
+      - name: Docker build
+        env:
+          AIRFLOW_VERSION: ${{ matrix.airflow-version }}
+          AIRFLOW_EXTRAS: ${{ matrix.airflow-extras }}
+        run: cd plugins/airflow/docker && make build
