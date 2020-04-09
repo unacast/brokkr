@@ -6,6 +6,7 @@ on:
       - 'master'
     paths:
       - 'plugins/airflow/docker/**'
+      - '.github/workflows/airflow-docker.yml'
 
 jobs:
   validate:
