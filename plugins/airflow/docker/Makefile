@@ -2,6 +2,8 @@
 .DEFAULT_GOAL :=  help
 include ../../help/help.mk
 
+# We default to 1.10.6, which is the highest version supported
+# by Google Cloud Composer at the moment
 ifndef AIRFLOW_VERSION
 AIRFLOW_VERSION := 1.10.6
 endif
