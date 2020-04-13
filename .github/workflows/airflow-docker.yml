@@ -12,16 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        airflow-version: [1.10.2, 1.10.3, 1.10.6, 1.10.9]
-        include:
-          - airflow-version: 1.10.2
-            airflow-extras: 'gcp_api,postgres'
-          - airflow-version: 1.10.3
-            airflow-extras: 'gcp_api,postgres'
-          - airflow-version: 1.10.6
-            airflow-extras: 'gcp,postgres'
-          - airflow-version: 1.10.9
-            airflow-extras: 'gcp,postgres'
+        airflow-version: [1.10.2, 1.10.3, 1.10.6, 1.10.9, 1.10.10]
 
     steps:
       - name: Checkout
@@ -30,8 +21,7 @@ jobs:
       - name: Docker build
         env:
           AIRFLOW_VERSION: ${{ matrix.airflow-version }}
-          AIRFLOW_EXTRAS: ${{ matrix.airflow-extras }}
-        run: cd plugins/airflow/docker && make build
+        run: cd plugins/airflow/docker && make airflow-${AIRFLOW_VERSION}
 
       - name: Docker login
         if: github.ref == 'refs/heads/master'
