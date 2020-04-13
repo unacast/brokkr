@@ -40,7 +40,7 @@ airflow-1.10.6: ## Build docker image 1.10.6
 
 .PHONY: airflow-1.10.9
 airflow-1.10.9: ## Build docker image 1.10.9
-	AIRFLOW_VERSION=1.10.6 AIRFLOW_EXTRAS=$(AIRFLOW_EXTRAS_POST_1_10_3) $(MAKE) build
+	AIRFLOW_VERSION=1.10.9 AIRFLOW_EXTRAS=$(AIRFLOW_EXTRAS_POST_1_10_3) $(MAKE) build
 
 .PHONY: airflow-1.10.10
 airflow-1.10.10: ## Build docker image 1.10.10
