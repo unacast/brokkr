@@ -5,8 +5,12 @@ AIRFLOW_DOCKER_ENVIRONMENT_VARS=$(AIRFLOW_WORKFOLDER)/docker-environment-variabl
 AIRFLOW_SENTINELS_FOLDER=$(AIRFLOW_WORKFOLDER)/sentinels
 COMPOSE_PROJECT_NAME=$(notdir $(CURDIR))
 
+ifndef AIRFLOW_VERSION
+AIRFLOW_VERSION := 1.10.6
+endif
+
 ifndef AIRFLOW_DOCKER_IMAGE
-AIRFLOW_DOCKER_IMAGE := python:3.6.6
+AIRFLOW_DOCKER_IMAGE := unacast/airflow:$(AIRFLOW_VERSION)
 endif
 
 ifndef AIRFLOW_VIRTUAL_ENV_FOLDER
@@ -22,7 +26,7 @@ AIRFLOW_VARIABLES := airflow-variables.json
 endif
 
 ifndef AIRFLOW_DAGS_FOLDER
-AIRFLOW_DAGS_FOLDER :=dags
+AIRFLOW_DAGS_FOLDER := dags
 endif
 
 ifndef AIRFLOW_REQUIREMENTS_TXT
@@ -30,7 +34,7 @@ AIRFLOW_REQUIREMENTS_TXT := requirements.txt
 endif
 
 .PHONY: airflow.start
-airflow.start: $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel ## Start Airflow server
+airflow.start: $(AIRFLOW_SENTINELS_FOLDER)/variables-imported.sentinel ## Start Airflow server
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d webserver
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d scheduler
@@ -44,22 +48,32 @@ airflow.logs: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Tail the local logs
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) logs --follow
 
 .PHONY: airflow.test
-airflow.test: $(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel ## Run the tests found in /test
+airflow.test: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Run the tests found in /test
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e PYTHONPATH=$(AIRFLOW_DAGS_FOLDER):test test pytest
 
 .PHONY: airflow.flake8
-airflow.flake8: $(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel ## Run the flake8 agains dags folder
+airflow.flake8: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Run the flake8 agains dags folder
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm test flake8 $(AIRFLOW_DAGS_FOLDER)
 	@echo Flake 8 OK!s
 
 .PHONY: airflow.clean
-airflow.clean: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Removes .airflow folder and docker containers
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) down
+airflow.clean: ## Removes .airflow folder and docker containers
+	$(info Removing containers)
+	docker ps -a --filter "name=$(COMPOSE_PROJECT_NAME)_" --format "{{.Names}}" | xargs docker rm -f
+	$(info Deleting $(AIRFLOW_WORKFOLDER))
 	rm -rf $(AIRFLOW_WORKFOLDER)
 
 .PHONY: airflow.error
-airflow.error: $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel ## List all dags, and filter errors
+airflow.error: $(AIRFLOW_SENTINELS_FOLDER)/variables-imported.sentinel ## List all dags, and filter errors
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run webserver airflow list_dags | grep -B5000 "DAGS"
+
+.PHONY: airflow.build
+airflow.build: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Rebuild docker images with --no-cache. Useful for debugging
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) build --no-cache --force-rm --pull
+
+.PHONY: airflow.rm
+airflow.rm: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Remove docker images. Useful fordebugging
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) rm
 
 .PHONY: airflow.venv
 airflow.venv: ## Create a virtual environment folder for Code-completion and tests inside your IDE
@@ -131,11 +145,7 @@ export AIRFLOW_DOCKER_COMPOSE
 define AIRFLOW_DOCKERFILE
 FROM $(AIRFLOW_DOCKER_IMAGE)
 
-RUN apt-get update
-RUN apt-get install openjdk-8-jre -y
-
 ADD $(AIRFLOW_REQUIREMENTS_TXT) /tmp/requirements.txt
-ENV AIRFLOW_GPL_UNIDECODE="yes"
 RUN pip install -r /tmp/requirements.txt
 endef
 export AIRFLOW_DOCKERFILE
@@ -155,29 +165,39 @@ $(AIRFLOW_WORKFOLDER):
 $(AIRFLOW_SENTINELS_FOLDER): | $(AIRFLOW_WORKFOLDER)
 	mkdir -p $(AIRFLOW_WORKFOLDER)/sentinels
 
+# A "listener" sentinel for changes on the port. We then recreate the docker-compose.yml
+$(AIRFLOW_SENTINELS_FOLDER)/airflow_webserver_port_$(AIRFLOW_WEBSERVER_PORT).sentinel: | $(AIRFLOW_SENTINELS_FOLDER)
+	$(info Creating sentinel for Webserver port "$(AIRFLOW_WEBSERVER_PORT)")
+	rm -f $(AIRFLOW_SENTINELS_FOLDER)/airflow_webserver_port_*.sentinel
+	touch $@
+
 # This creates the docker-compose.yml file.
-$(AIRFLOW_WORKFOLDER)/docker-compose.yml: | $(AIRFLOW_WORKFOLDER)
+$(AIRFLOW_WORKFOLDER)/docker-compose.yml: $(AIRFLOW_SENTINELS_FOLDER)/airflow_webserver_port_$(AIRFLOW_WEBSERVER_PORT).sentinel \
+$(AIRFLOW_DOCKER_ENVIRONMENT_VARS) $(AIRFLOW_REQUIREMENTS_TXT)
+	$(info Creating $(AIRFLOW_WORKFOLDER)/Dockerfile)
 	echo "$$AIRFLOW_DOCKERFILE" > $(AIRFLOW_WORKFOLDER)/Dockerfile
+	$(info Creating $(AIRFLOW_WORKFOLDER)/docker-compose.yml)
 	echo "$$AIRFLOW_DOCKER_COMPOSE" > $(AIRFLOW_WORKFOLDER)/docker-compose.yml
+	# If requirements.txt have changed we rebuild
+	echo "$?" | grep -q "$(AIRFLOW_REQUIREMENTS_TXT)" && docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) build
 
 # Ensure that we have started the PostgreSQL and ran airflow initdb
-$(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel: $(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel
+$(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel: $(AIRFLOW_WORKFOLDER)/docker-compose.yml
+	echo Starting PostgreSQL container
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
 	# Wait for postgreSQL to start
 	sleep 5
-	# TODO: This does create not needed errors because variables are needed
-	# Could perhaps try to manipulate the DAGS_FOLDER
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow initdb
+	echo Initializing airflow Postgres database
+	docker-compose -f ${AIRFLOW_DOCKER_COMPOSE_FILE} run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver airflow initdb
+	touch $@
+
+# TODO: Find a way to listen to changes in $(AIRFLOW_VARIABLES) file.
+$(AIRFLOW_SENTINELS_FOLDER)/variables-imported.sentinel: $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel
+	echo Import airflow variables from $(AIRFLOW_VARIABLES)
 	if [ -f "$(AIRFLOW_VARIABLES)" ]; then \
 	 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow variables -i /code/$(AIRFLOW_VARIABLES); \
 	fi
-	touch $@
-
-# Ensure that python requirements have run.
-# Will rerun on changes on requirements.txt
-$(AIRFLOW_SENTINELS_FOLDER)/requirements.sentinel: $(AIRFLOW_REQUIREMENTS_TXT) $(AIRFLOW_WORKFOLDER)/docker-compose.yml \
-$(AIRFLOW_DOCKER_ENVIRONMENT_VARS) | $(AIRFLOW_SENTINELS_FOLDER)
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) build
+	$(info Done importing variables)
 	touch $@
 
 # Docker environment file
@@ -187,7 +207,9 @@ $(AIRFLOW_DOCKER_ENVIRONMENT_VARS): | $(AIRFLOW_WORKFOLDER)
 	echo AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@db:5432/airflow >> $@
 	echo AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@db:5432/airflow >> $@
 	echo AIRFLOW__CORE__DAGS_FOLDER=$(AIRFLOW_DAGS_FOLDER) >> $@
+	echo 'AIRFLOW__CORE__FERNET_KEY=rSbqA7rweQEHr0qi6rjzJHKUc2zxUqbEypFSk3Qt3ms=' >> $@
 	echo AIRFLOW__CORE__LOAD_EXAMPLES=False >> $@
+	echo AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True >> $@
 	if [ -f "airflow-env-vars.properties" ]; then \
 		cat ${PWD}/airflow-env-vars.properties >> $@; \
 	fi
