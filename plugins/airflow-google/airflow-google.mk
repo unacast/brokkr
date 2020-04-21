@@ -23,7 +23,6 @@ airflow.start: $(AIRFLOW_SENTINELS_FOLDER)/google-connections.sentinel
 
 .airflow/google-auth-credentials.json: $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
 	# Copy the desired credentials into the working folder
-	$(if $(value GOOGLE_DEFALULT_PROJECT),, $(error GOOGLE_DEFALULT_PROJECT environment variable is not set.))
 	echo Copying $(AIRFLOW_GOOGLE_CREDENTIALS_FILE) to .airflow working folder
 	$(shell cp $(AIRFLOW_GOOGLE_CREDENTIALS_FILE) $@)
 	# Add an environment variable for the Google credentials
