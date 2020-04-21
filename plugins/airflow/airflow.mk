@@ -4,6 +4,9 @@ AIRFLOW_DOCKER_COMPOSE_FILE=$(AIRFLOW_WORKFOLDER)/docker-compose.yml
 AIRFLOW_DOCKER_ENVIRONMENT_VARS=$(AIRFLOW_WORKFOLDER)/docker-environment-variables.properties
 AIRFLOW_SENTINELS_FOLDER=$(AIRFLOW_WORKFOLDER)/sentinels
 COMPOSE_PROJECT_NAME=$(notdir $(CURDIR))
+AIRFLOW_ENV_VARS_HASH=$(shell echo '$(AIRFLOW_ENVIRONMENT_VARS)' | md5)
+AIRFLOW_VARIABLES_SENTINEL=$(AIRFLOW_SENTINELS_FOLDER)/variables-imported.sentinel
+AIRFLOW_VERSION_SENTINEL = $(AIRFLOW_SENTINELS_FOLDER)/airflow_version_$(shell echo '$(AIRFLOW_ENVIRONMENT_VARS)' | md5).sentinel
 
 ifndef AIRFLOW_VERSION
 AIRFLOW_VERSION := 1.10.6
@@ -33,8 +36,13 @@ ifndef AIRFLOW_REQUIREMENTS_TXT
 AIRFLOW_REQUIREMENTS_TXT := requirements.txt
 endif
 
+# Connections etc
+ifndef AIRFLOW_ENVIRONMENT_VARS
+AIRFLOW_ENVIRONMENT_VARS :=
+endif
+
 .PHONY: airflow.start
-airflow.start: $(AIRFLOW_SENTINELS_FOLDER)/variables-imported.sentinel ## Start Airflow server
+airflow.start: $(AIRFLOW_VARIABLES_SENTINEL) ## Start Airflow server
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d webserver
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d scheduler
@@ -49,7 +57,7 @@ airflow.logs: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Tail the local logs
 
 .PHONY: airflow.test
 airflow.test: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Run the tests found in /test
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e PYTHONPATH=$(AIRFLOW_DAGS_FOLDER):test test pytest
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e PYTHONPATH=$(AIRFLOW_DAGS_FOLDER):test test pytest -rA
 
 .PHONY: airflow.flake8
 airflow.flake8: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Run the flake8 agains dags folder
@@ -58,13 +66,15 @@ airflow.flake8: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Run the flake8 again
 
 .PHONY: airflow.clean
 airflow.clean: ## Removes .airflow folder and docker containers
-	$(info Removing containers)
+	echo Removing containers
 	docker ps -a --filter "name=$(COMPOSE_PROJECT_NAME)_" --format "{{.Names}}" | xargs docker rm -f
+	echo Removing data volume
+	docker volume ls --format "{{.Name}}" --filter "name=$(COMPOSE_PROJECT_NAME)_data-volume" | xargs docker volume rm
 	$(info Deleting $(AIRFLOW_WORKFOLDER))
 	rm -rf $(AIRFLOW_WORKFOLDER)
 
 .PHONY: airflow.error
-airflow.error: $(AIRFLOW_SENTINELS_FOLDER)/variables-imported.sentinel ## List all dags, and filter errors
+airflow.error: $(AIRFLOW_VARIABLES_SENTINEL) ## List all dags, and filter errors
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run webserver airflow list_dags | grep -B5000 "DAGS"
 
 .PHONY: airflow.build
@@ -171,15 +181,20 @@ $(AIRFLOW_SENTINELS_FOLDER)/airflow_webserver_port_$(AIRFLOW_WEBSERVER_PORT).sen
 	rm -f $(AIRFLOW_SENTINELS_FOLDER)/airflow_webserver_port_*.sentinel
 	touch $@
 
+$(AIRFLOW_VERSION_SENTINEL): | $(AIRFLOW_SENTINELS_FOLDER)
+	echo Creating sentinel for AIRFLOW VERSION $(AIRFLOW_VERSION)
+	rm -f $(AIRFLOW_SENTINELS_FOLDER)/airflow_version_*
+	echo $(AIRFLOW_VERSION) >> $@
+
 # This creates the docker-compose.yml file.
 $(AIRFLOW_WORKFOLDER)/docker-compose.yml: $(AIRFLOW_SENTINELS_FOLDER)/airflow_webserver_port_$(AIRFLOW_WEBSERVER_PORT).sentinel \
-$(AIRFLOW_DOCKER_ENVIRONMENT_VARS) $(AIRFLOW_REQUIREMENTS_TXT)
+$(AIRFLOW_SENTINELS_FOLDER)/airflow_env_$(AIRFLOW_ENV_VARS_HASH).sentinel $(AIRFLOW_VERSION_SENTINEL) $(AIRFLOW_REQUIREMENTS_TXT)
 	$(info Creating $(AIRFLOW_WORKFOLDER)/Dockerfile)
 	echo "$$AIRFLOW_DOCKERFILE" > $(AIRFLOW_WORKFOLDER)/Dockerfile
 	$(info Creating $(AIRFLOW_WORKFOLDER)/docker-compose.yml)
 	echo "$$AIRFLOW_DOCKER_COMPOSE" > $(AIRFLOW_WORKFOLDER)/docker-compose.yml
-	# If requirements.txt have changed we rebuild
-	echo "$?" | grep -q "$(AIRFLOW_REQUIREMENTS_TXT)" && docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) build
+	# If requirements.txt or version have changed we rebuild
+	echo "$?" | grep -q "$(AIRFLOW_VERSION_SENTINEL)\|$(AIRFLOW_REQUIREMENTS_TXT)" && docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) build
 
 # Ensure that we have started the PostgreSQL and ran airflow initdb
 $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel: $(AIRFLOW_WORKFOLDER)/docker-compose.yml
@@ -192,7 +207,7 @@ $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel: $(AIRFLOW_WORKFOLDER)/docker-compo
 	touch $@
 
 # TODO: Find a way to listen to changes in $(AIRFLOW_VARIABLES) file.
-$(AIRFLOW_SENTINELS_FOLDER)/variables-imported.sentinel: $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel
+$(AIRFLOW_VARIABLES_SENTINEL): $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel
 	echo Import airflow variables from $(AIRFLOW_VARIABLES)
 	if [ -f "$(AIRFLOW_VARIABLES)" ]; then \
 	 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow variables -i /code/$(AIRFLOW_VARIABLES); \
@@ -202,14 +217,16 @@ $(AIRFLOW_SENTINELS_FOLDER)/variables-imported.sentinel: $(AIRFLOW_SENTINELS_FOL
 
 # Docker environment file
 # Various AIRFLOW settings and url to database
-$(AIRFLOW_DOCKER_ENVIRONMENT_VARS): | $(AIRFLOW_WORKFOLDER)
-	echo AIRFLOW__CORE__EXECUTOR=LocalExecutor > $@
-	echo AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@db:5432/airflow >> $@
-	echo AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@db:5432/airflow >> $@
-	echo AIRFLOW__CORE__DAGS_FOLDER=$(AIRFLOW_DAGS_FOLDER) >> $@
-	echo 'AIRFLOW__CORE__FERNET_KEY=rSbqA7rweQEHr0qi6rjzJHKUc2zxUqbEypFSk3Qt3ms=' >> $@
-	echo AIRFLOW__CORE__LOAD_EXAMPLES=False >> $@
-	echo AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True >> $@
-	if [ -f "airflow-env-vars.properties" ]; then \
-		cat ${PWD}/airflow-env-vars.properties >> $@; \
-	fi
+$(AIRFLOW_SENTINELS_FOLDER)/airflow_env_$(AIRFLOW_ENV_VARS_HASH).sentinel: | $(AIRFLOW_SENTINELS_FOLDER)
+	echo AIRFLOW__CORE__EXECUTOR=LocalExecutor > $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+	echo AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@db:5432/airflow >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+	echo AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@db:5432/airflow >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+	echo AIRFLOW__CORE__DAGS_FOLDER=/code/$(AIRFLOW_DAGS_FOLDER) >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+	echo 'AIRFLOW__CORE__FERNET_KEY=rSbqA7rweQEHr0qi6rjzJHKUc2zxUqbEypFSk3Qt3ms=' >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+	echo AIRFLOW__CORE__LOAD_EXAMPLES=False >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+	echo AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+	echo "vars:" $(AIRFLOW_ENVIRONMENT_VARS)
+	for var in $(AIRFLOW_ENVIRONMENT_VARS); do \
+		echo $$var >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS); \
+	done
+	touch $@
