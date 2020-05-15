@@ -27,7 +27,7 @@ airflow-1.10.2: ## Build docker image 1.10.2
 	AIRFLOW_VERSION=1.10.2 $(MAKE) build
 
 .PHONY: airflow-1.10.3
-airflow-1.10.3: ## Build docker image 1.10.2
+airflow-1.10.3: ## Build docker image 1.10.3
 	AIRFLOW_VERSION=1.10.3 $(MAKE) build
 
 .PHONY: airflow-1.10.6

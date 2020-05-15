@@ -150,6 +150,7 @@ services:
 volumes:
   data-volume:
 endef
+# Export the variable for use in targets down below
 export AIRFLOW_DOCKER_COMPOSE
 
 define AIRFLOW_DOCKERFILE
@@ -158,6 +159,7 @@ FROM $(AIRFLOW_DOCKER_IMAGE)
 ADD $(AIRFLOW_REQUIREMENTS_TXT) /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
 endef
+# Export the variable for use in targets down below
 export AIRFLOW_DOCKERFILE
 
 ############################################################
@@ -165,7 +167,8 @@ export AIRFLOW_DOCKERFILE
 # the webserver, flake8 or tests
 ############################################################
 
-# Create the working folder
+# Create the working folder. This is where the intermediate files like docker-compose.yml
+# and sentinel files are stored.
 $(AIRFLOW_WORKFOLDER):
 	mkdir -p $(AIRFLOW_WORKFOLDER)
 
@@ -181,6 +184,7 @@ $(AIRFLOW_SENTINELS_FOLDER)/airflow_webserver_port_$(AIRFLOW_WEBSERVER_PORT).sen
 	rm -f $(AIRFLOW_SENTINELS_FOLDER)/airflow_webserver_port_*.sentinel
 	touch $@
 
+# Sentinel for the Airflow version. We need to recreate the docker-compose.yml when changed
 $(AIRFLOW_VERSION_SENTINEL): | $(AIRFLOW_SENTINELS_FOLDER)
 	echo Creating sentinel for AIRFLOW VERSION $(AIRFLOW_VERSION)
 	rm -f $(AIRFLOW_SENTINELS_FOLDER)/airflow_version_*
@@ -207,6 +211,7 @@ $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel: $(AIRFLOW_WORKFOLDER)/docker-compo
 	touch $@
 
 # TODO: Find a way to listen to changes in $(AIRFLOW_VARIABLES) file.
+# User input of Airflow variables. These are imported into the Airflow db
 $(AIRFLOW_VARIABLES_SENTINEL): $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel
 	echo Import airflow variables from $(AIRFLOW_VARIABLES)
 	if [ -f "$(AIRFLOW_VARIABLES)" ]; then \
@@ -216,7 +221,7 @@ $(AIRFLOW_VARIABLES_SENTINEL): $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel
 	touch $@
 
 # Docker environment file
-# Various AIRFLOW settings and url to database
+# Various AIRFLOW settings, url to database etc
 $(AIRFLOW_SENTINELS_FOLDER)/airflow_env_$(AIRFLOW_ENV_VARS_HASH).sentinel: | $(AIRFLOW_SENTINELS_FOLDER)
 	echo AIRFLOW__CORE__EXECUTOR=LocalExecutor > $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
 	echo AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@db:5432/airflow >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
