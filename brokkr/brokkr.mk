@@ -4,38 +4,44 @@ ifndef BROKKR_REPO
 BROKKR_REPO := unacast/brokkr
 endif
 
-_BROKKR_PLUGIN_PATHS = $(filter-out http%,$(BROKKR_PLUGINS)) $(subst /,!,$(subst :,§,$(filter http%,$(BROKKR_PLUGINS))))
-_BROKKR_PLUGIN_SUBFOLDERS = $(addprefix .brokkr/,$(dir $(filter-out http%,$(BROKKR_PLUGINS))))
+# The dir where this file recides
+_BROKKR_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+# The dir for where to download the dependencies
+_BROKKR_PLUGINS_DIR := $(_BROKKR_DIR)plugins
+# A hash of the plugins, so that we can spot changes
+_BROKKR_PLUGINS_SENTINEL := $(_BROKKR_PLUGINS_DIR)/$(shell echo '$(BROKKR_PLUGINS)' | md5).sentinel
+# The dependencies file, a working file for adding "include" to downloaded plugins
+_BROKKR_PLUGINS_MK := $(_BROKKR_PLUGINS_DIR)/plugins.mk
 
 # Create the local Brokkr folder for storing all plugins
-.brokkr:
-	mkdir -p .brokkr
-
-# Create all subpaths for plugins
-$(_BROKKR_PLUGIN_SUBFOLDERS): .brokkr
+$(_BROKKR_PLUGINS_DIR):
 	mkdir -p $@
+# Create a new sentinel everytime the plugins changes. This triggers a new download.
+$(_BROKKR_PLUGINS_SENTINEL): $(_BROKKR_PLUGINS_DIR)
+	touch $@
 
 # This is the target that downloads the referenced makefiles
 # Depends on .brokkr-folder and subfolders for plugins being loaded.
 # http(s) url's are converted to a filename safe download path
-.ONESHELL:
-$(addprefix .brokkr/,$(_BROKKR_PLUGIN_PATHS)): $(_BROKKR_PLUGIN_SUBFOLDERS)
-	@if [ `echo $@ | grep "^\.brokkr\/http.*"` ]; then\
-		url=`echo '$@' | sed 's/\.brokkr\///g' | sed 's/§/:/g' | sed 's/!/\//g'`; \
-	else \
-		plugin_version=`echo $@ | rev | cut -d '-' -f 1 | rev | cut -d '.' -f 1`;\
-		plugin_path=`echo $@ | grep -o '/.*' | sed "s/\-$${plugin_version}//g"`; \
-		url="https://raw.githubusercontent.com/$(BROKKR_REPO)/$${plugin_version}/plugins$${plugin_path}"; \
-	fi;\
-	echo "Downloading $${url}";\
-	curl --fail -s "$${url}" -o $@;\
+$(_BROKKR_PLUGINS_MK): $(_BROKKR_PLUGINS_SENTINEL)
+	# Clean working dir, except sentinel
+	find $(_BROKKR_PLUGINS_DIR) -type f -not -name "`basename $(_BROKKR_DEPENDENCIES_SENTINEL)`" | xargs rm
+	for var in $(BROKKR_PLUGINS); do \
+		plugin_version=`echo $$var | cut -d '@' -f 2`;\
+		plugin_path=`echo $$var | cut -d '@' -f 1`; \
+		mkdir -p $(_BROKKR_PLUGINS_DIR)/`dirname $$plugin_path`; \
+		url="https://raw.githubusercontent.com/$(BROKKR_REPO)/$${plugin_version}/plugins/$${plugin_path}.mk"; \
+		echo "Downloading $${url}"; \
+		curl --fail -s "$$url" -o $(_BROKKR_PLUGINS_DIR)/$${plugin_path}.mk; \
+		echo include $(_BROKKR_PLUGINS_DIR)/$${plugin_path}.mk >> $@; \
+	done
 
 .PHONY: brokkr.clean
 brokkr.clean: ## Clean up the .brokkr folder. Triggers a new download of plugins.
-	rm -r .brokkr
+	rm -r $(_BROKKR_PLUGINS_DIR)
 
 .PHONY: brokkr.update
 brokkr.update: ## Download latest Brokkr version
 	curl https://raw.githubusercontent.com/judoole/brokkr/master/scripts/install.sh | bash
 
--include $(addprefix .brokkr/,$(_BROKKR_PLUGIN_PATHS))
+-include $(_BROKKR_PLUGINS_MK)

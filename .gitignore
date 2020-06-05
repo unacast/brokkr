@@ -1,5 +1,5 @@
 # Working folder for Brokkr
-.brokkr/
+brokkr/plugins/
 
 # Vim swapfiles
 *.swm
@@ -7,3 +7,6 @@
 
 # IntelliJ
 .idea/
+
+# Python (Airflow example)
+__pycache__/

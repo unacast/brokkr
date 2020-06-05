@@ -2,6 +2,8 @@
 A Makefile dependency tool
 
 ## Install
+Brokkr installs itself in your project by either adding a Makefile or adding itself to an existing Makefile. This oneliner will install the latest version.
+
 `curl https://raw.githubusercontent.com/judoole/brokkr/master/scripts/install.sh | bash`
 
 ## Usage
