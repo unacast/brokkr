@@ -15,8 +15,8 @@ $(AIRFLOW_SENTINELS_FOLDER)/google-connections.sentinel: $(AIRFLOW_VARIABLES_SEN
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow connections --delete --conn_id=google_cloud_default
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow connections --delete --conn_id=bigquery_default
 	echo Adding connection google_cloud_default and bigquery_default
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow connections --add --conn_id=google_cloud_default --conn_type=google_cloud_platform --conn_extra='{"extra__google_cloud_platform__project":"$(GOOGLE_DEFALULT_PROJECT)"}'
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow connections --add --conn_id=bigquery_default --conn_type=bigquery --conn_extra='{"extra__google_cloud_platform__project":"$(GOOGLE_DEFALULT_PROJECT)"}'
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow connections --add --conn_id=google_cloud_default --conn_type=google_cloud_platform --conn_extra='{"extra__google_cloud_platform__project":"$(GOOGLE_DEFAULT_PROJECT)"}'
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow connections --add --conn_id=bigquery_default --conn_type=bigquery --conn_extra='{"extra__google_cloud_platform__project":"$(GOOGLE_DEFAULT_PROJECT)"}'
 	touch $@
 
 airflow.start: $(AIRFLOW_SENTINELS_FOLDER)/google-connections.sentinel
