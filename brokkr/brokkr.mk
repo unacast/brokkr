@@ -25,7 +25,7 @@ $(_BROKKR_PLUGINS_SENTINEL): $(_BROKKR_PLUGINS_DIR)
 # http(s) url's are converted to a filename safe download path
 $(_BROKKR_PLUGINS_MK): $(_BROKKR_PLUGINS_SENTINEL)
 	# Clean working dir, except sentinel
-	find $(_BROKKR_PLUGINS_DIR) -type f -not -name "`basename $(_BROKKR_DEPENDENCIES_SENTINEL)`" | xargs rm
+	find $(_BROKKR_PLUGINS_DIR) -type f -not -name "`basename $(_BROKKR_PLUGINS_SENTINEL)`" | xargs rm
 	for var in $(BROKKR_PLUGINS); do \
 		plugin_version=`echo $$var | cut -d '@' -f 2`;\
 		plugin_path=`echo $$var | cut -d '@' -f 1`; \

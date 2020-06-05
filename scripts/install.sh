@@ -10,7 +10,7 @@ curl --fail -s "https://raw.githubusercontent.com/unacast/brokkr/${TAG}/brokkr/b
 # Add Brokkr to Makefile or create Makefile if it does not exist
 if [ ! -f "Makefile" ]; then
 	echo '.SILENT: ;' > Makefile
-	echo 'BROKKR_PLUGINS = help/help-master.mk' >> Makefile
+	echo 'BROKKR_PLUGINS = help/help@master' >> Makefile
 	echo '.DEFAULT_GOAL := help' >> Makefile
 	echo -e '\n-include ./brokkr/brokkr.mk' >> Makefile
 elif [[ ! `grep 'include ./brokkr/brokkr.mk' Makefile` ]]; then
