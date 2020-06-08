@@ -1,13 +1,8 @@
 # Can be overridden if you for example would like to use a company
 # wide id. For example 
 # AIRFLOW_GOOGLE_CREDENTIALS_ID=*my-company.com
-ifndef AIRFLOW_GOOGLE_CREDENTIALS_ID
-AIRFLOW_GOOGLE_CREDENTIALS_ID=*
-endif
-
-ifndef AIRFLOW_GOOGLE_CREDENTIALS_FILE
-AIRFLOW_GOOGLE_CREDENTIALS_FILE=$(shell ls ~/.config/gcloud/legacy_credentials/$(AIRFLOW_GOOGLE_CREDENTIALS_ID)/adc.json | head -1)
-endif
+AIRFLOW_GOOGLE_CREDENTIALS_ID ?=*
+AIRFLOW_GOOGLE_CREDENTIALS_FILE ?=$(shell ls ~/.config/gcloud/legacy_credentials/$(AIRFLOW_GOOGLE_CREDENTIALS_ID)/adc.json | head -1)
 
 # Add Google default connections
 $(AIRFLOW_SENTINELS_FOLDER)/google-connections.sentinel: $(AIRFLOW_VARIABLES_SENTINEL)
@@ -19,6 +14,7 @@ $(AIRFLOW_SENTINELS_FOLDER)/google-connections.sentinel: $(AIRFLOW_VARIABLES_SEN
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow connections --add --conn_id=bigquery_default --conn_type=bigquery --conn_extra='{"extra__google_cloud_platform__project":"$(GOOGLE_DEFAULT_PROJECT)"}'
 	touch $@
 
+# Make airflow.start dependent on Google connections has been made
 airflow.start: $(AIRFLOW_SENTINELS_FOLDER)/google-connections.sentinel
 
 .airflow/google-auth-credentials.json: $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
@@ -28,4 +24,5 @@ airflow.start: $(AIRFLOW_SENTINELS_FOLDER)/google-connections.sentinel
 	# Add an environment variable for the Google credentials
 	echo GOOGLE_APPLICATION_CREDENTIALS=/code/$@ >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
 
-$(AIRFLOW_SENTINELS_FOLDER)/variables-imported.sentinel: .airflow/google-auth-credentials.json
+# Make sure credentials are added to the $(AIRFLOW_DOCKER_ENVIRONMENT_VARS) file
+$(AIRFLOW_VARIABLES_SENTINEL): .airflow/google-auth-credentials.json

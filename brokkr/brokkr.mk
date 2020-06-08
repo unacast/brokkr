@@ -1,8 +1,6 @@
 # BROKKR_REPO is the plugins repository.
 # We guess that all non-http(s) plugins to recide here
-ifndef BROKKR_REPO
-BROKKR_REPO := unacast/brokkr
-endif
+BROKKR_REPO ?= unacast/brokkr
 
 # The dir where this file recides
 _BROKKR_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -42,6 +40,6 @@ brokkr.clean: ## Clean up the .brokkr folder. Triggers a new download of plugins
 
 .PHONY: brokkr.update
 brokkr.update: ## Download latest Brokkr version
-	curl https://raw.githubusercontent.com/judoole/brokkr/master/scripts/install.sh | bash
+	curl https://raw.githubusercontent.com/$(BROKKR_REPO)/brokkr/master/scripts/install.sh | bash
 
--include $(_BROKKR_PLUGINS_MK)
+include brokkr/plugins/plugins.mk

@@ -1,45 +1,24 @@
 .EXPORT_ALL_VARIABLES:
-AIRFLOW_WORKFOLDER=.airflow
-AIRFLOW_DOCKER_COMPOSE_FILE=$(AIRFLOW_WORKFOLDER)/docker-compose.yml
+AIRFLOW_WORKFOLDER ?= .airflow
+AIRFLOW_DOCKER_COMPOSE_FILE ?=$(AIRFLOW_WORKFOLDER)/docker-compose.yml
 AIRFLOW_DOCKER_ENVIRONMENT_VARS=$(AIRFLOW_WORKFOLDER)/docker-environment-variables.properties
+AIRFLOW_DOCKER_ENVIRONMENT_VARS_SENTINEL=$(AIRFLOW_SENTINELS_FOLDER)/docker-env-vars-created.sentinel
 AIRFLOW_SENTINELS_FOLDER=$(AIRFLOW_WORKFOLDER)/sentinels
 COMPOSE_PROJECT_NAME=$(notdir $(CURDIR))
+AIRFLOW_DOCKERFILE=$(AIRFLOW_WORKFOLDER)/Dockerfile
 AIRFLOW_ENV_VARS_HASH=$(shell echo '$(AIRFLOW_ENVIRONMENT_VARS)' | md5)
 AIRFLOW_VARIABLES_SENTINEL=$(AIRFLOW_SENTINELS_FOLDER)/variables-imported.sentinel
-AIRFLOW_VERSION_SENTINEL = $(AIRFLOW_SENTINELS_FOLDER)/airflow_version_$(shell echo '$(AIRFLOW_ENVIRONMENT_VARS)' | md5).sentinel
-
-ifndef AIRFLOW_VERSION
-AIRFLOW_VERSION := 1.10.6
-endif
-
-ifndef AIRFLOW_DOCKER_IMAGE
-AIRFLOW_DOCKER_IMAGE := unacast/airflow:$(AIRFLOW_VERSION)
-endif
-
-ifndef AIRFLOW_VIRTUAL_ENV_FOLDER
-AIRFLOW_VIRTUAL_ENV_FOLDER := .venv
-endif
-
-ifndef AIRFLOW_WEBSERVER_PORT
-AIRFLOW_WEBSERVER_PORT := 8080
-endif
-
-ifndef AIRFLOW_VARIABLES
-AIRFLOW_VARIABLES := airflow-variables.json
-endif
-
-ifndef AIRFLOW_DAGS_FOLDER
-AIRFLOW_DAGS_FOLDER := dags
-endif
-
-ifndef AIRFLOW_REQUIREMENTS_TXT
-AIRFLOW_REQUIREMENTS_TXT := requirements.txt
-endif
-
-# Connections etc
-ifndef AIRFLOW_ENVIRONMENT_VARS
-AIRFLOW_ENVIRONMENT_VARS :=
-endif
+AIRFLOW_VERSION_SENTINEL=$(AIRFLOW_SENTINELS_FOLDER)/airflow_version_$(shell echo '$(AIRFLOW_ENVIRONMENT_VARS)' | md5).sentinel
+BROKKR_AIRFLOW_PLUGIN_VERSION=$(shell echo $(BROKKR_PLUGINS) | grep -o1 -Ei "airflow/airflow@([0-9a-z\.]+)" | cut -d "@" -f2)
+AIRFLOW_VERSION ?= 1.10.6
+AIRFLOW_DOCKER_IMAGE ?= unacast/airflow:$(AIRFLOW_VERSION)
+AIRFLOW_VIRTUAL_ENV_FOLDER ?= .venv
+AIRFLOW_WEBSERVER_PORT ?= 8080
+AIRFLOW_VARIABLES ?= $(AIRFLOW_SENTINELS_FOLDER)/airflow-variables.json
+AIRFLOW_DAGS_FOLDER ?= dags
+AIRFLOW_TESTS_FOLDER ?= tests
+AIRFLOW_REQUIREMENTS_TXT ?= $(AIRFLOW_WORKFOLDER)/requirements.txt
+AIRFLOW_ENVIRONMENT_VARS ?= $(AIRFLOW_WORKFOLDER)/docker-environment-variables.extra.properties
 
 .PHONY: airflow.start
 airflow.start: $(AIRFLOW_VARIABLES_SENTINEL) ## Start Airflow server
@@ -57,7 +36,7 @@ airflow.logs: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Tail the local logs
 
 .PHONY: airflow.test
 airflow.test: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Run the tests found in /test
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e PYTHONPATH=$(AIRFLOW_DAGS_FOLDER):test test pytest -rA
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e PYTHONPATH=$(AIRFLOW_DAGS_FOLDER):$(AIRFLOW_TESTS_FOLDER) test pytest -rA
 
 .PHONY: airflow.flake8
 airflow.flake8: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Run the flake8 agains dags folder
@@ -95,8 +74,8 @@ airflow.venv: ## Create a virtual environment folder for Code-completion and tes
 
 #####################################################################
 # These are the docker files that we use during local runs of Airflow
-# docker-compose.yml consists of a PostgreSQL backend, Airflow 
-# webserver, Airflow scheduler and a container for flake8 and pytest 
+# docker-compose.yml consists of a PostgreSQL backend, Airflow
+# webserver, Airflow scheduler and a container for flake8 and pytest
 # runs
 ####################################################################
 define AIRFLOW_DOCKER_COMPOSE
@@ -111,12 +90,14 @@ services:
 
   webserver:
     depends_on:
-      - db          
+      - db
     build:
       context: $${PWD}
-      dockerfile: $(AIRFLOW_WORKFOLDER)/Dockerfile
+      dockerfile: $(AIRFLOW_DOCKERFILE)
     working_dir: /code
-    env_file: $${PWD}/$(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+    env_file:
+      - $${PWD}/$(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+      - $${PWD}/$(AIRFLOW_ENVIRONMENT_VARS)
     ports:
       - "$(AIRFLOW_WEBSERVER_PORT):8080"
     volumes:
@@ -127,12 +108,14 @@ services:
 
   scheduler:
     depends_on:
-      - db          
+      - db
     build:
       context: $${PWD}
-      dockerfile: $(AIRFLOW_WORKFOLDER)/Dockerfile
+      dockerfile: $(AIRFLOW_DOCKERFILE)
     working_dir: /code
-    env_file: $${PWD}/$(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+    env_file:
+      - $${PWD}/$(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
+      - $${PWD}/$(AIRFLOW_ENVIRONMENT_VARS)
     volumes:
       - "$${PWD}/:/code"
       - data-volume:/root/airflow/logs/
@@ -142,7 +125,7 @@ services:
   test:
     build:
       context: $${PWD}
-      dockerfile: $(AIRFLOW_WORKFOLDER)/Dockerfile
+      dockerfile: $(AIRFLOW_DOCKERFILE)
     working_dir: /code
     volumes:
       - "$${PWD}/:/code"
@@ -153,14 +136,14 @@ endef
 # Export the variable for use in targets down below
 export AIRFLOW_DOCKER_COMPOSE
 
-define AIRFLOW_DOCKERFILE
+define AIRFLOW_DOCKERFILE_TEMPLATE
 FROM $(AIRFLOW_DOCKER_IMAGE)
 
 ADD $(AIRFLOW_REQUIREMENTS_TXT) /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
 endef
 # Export the variable for use in targets down below
-export AIRFLOW_DOCKERFILE
+export AIRFLOW_DOCKERFILE_TEMPLATE
 
 ############################################################
 # These are various pre-steps that are needed before running
@@ -190,39 +173,13 @@ $(AIRFLOW_VERSION_SENTINEL): | $(AIRFLOW_SENTINELS_FOLDER)
 	rm -f $(AIRFLOW_SENTINELS_FOLDER)/airflow_version_*
 	echo $(AIRFLOW_VERSION) >> $@
 
-# This creates the docker-compose.yml file.
-$(AIRFLOW_WORKFOLDER)/docker-compose.yml: $(AIRFLOW_SENTINELS_FOLDER)/airflow_webserver_port_$(AIRFLOW_WEBSERVER_PORT).sentinel \
-$(AIRFLOW_SENTINELS_FOLDER)/airflow_env_$(AIRFLOW_ENV_VARS_HASH).sentinel $(AIRFLOW_VERSION_SENTINEL) $(AIRFLOW_REQUIREMENTS_TXT)
-	$(info Creating $(AIRFLOW_WORKFOLDER)/Dockerfile)
-	echo "$$AIRFLOW_DOCKERFILE" > $(AIRFLOW_WORKFOLDER)/Dockerfile
-	$(info Creating $(AIRFLOW_WORKFOLDER)/docker-compose.yml)
-	echo "$$AIRFLOW_DOCKER_COMPOSE" > $(AIRFLOW_WORKFOLDER)/docker-compose.yml
-	# If requirements.txt or version have changed we rebuild
-	echo "$?" | grep -q "$(AIRFLOW_VERSION_SENTINEL)\|$(AIRFLOW_REQUIREMENTS_TXT)" && docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) build
+# This creates the Airflow dockerfile, if the user has not added his own
+$(AIRFLOW_DOCKERFILE):
+	$(info Creating $(AIRFLOW_DOCKERFILE))
+	echo "$$AIRFLOW_DOCKERFILE_TEMPLATE" > $(AIRFLOW_DOCKERFILE)
 
-# Ensure that we have started the PostgreSQL and ran airflow initdb
-$(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel: $(AIRFLOW_WORKFOLDER)/docker-compose.yml
-	echo Starting PostgreSQL container
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
-	# Wait for postgreSQL to start
-	sleep 5
-	echo Initializing airflow Postgres database
-	docker-compose -f ${AIRFLOW_DOCKER_COMPOSE_FILE} run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver airflow initdb
-	touch $@
-
-# TODO: Find a way to listen to changes in $(AIRFLOW_VARIABLES) file.
-# User input of Airflow variables. These are imported into the Airflow db
-$(AIRFLOW_VARIABLES_SENTINEL): $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel
-	echo Import airflow variables from $(AIRFLOW_VARIABLES)
-	if [ -f "$(AIRFLOW_VARIABLES)" ]; then \
-	 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow variables -i /code/$(AIRFLOW_VARIABLES); \
-	fi
-	$(info Done importing variables)
-	touch $@
-
-# Docker environment file
-# Various AIRFLOW settings, url to database etc
-$(AIRFLOW_SENTINELS_FOLDER)/airflow_env_$(AIRFLOW_ENV_VARS_HASH).sentinel: | $(AIRFLOW_SENTINELS_FOLDER)
+$(AIRFLOW_DOCKER_ENVIRONMENT_VARS):
+	$(info Creating $(AIRFLOW_DOCKER_ENVIRONMENT_VARS))
 	echo AIRFLOW__CORE__EXECUTOR=LocalExecutor > $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
 	echo AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@db:5432/airflow >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
 	echo AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@db:5432/airflow >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
@@ -230,8 +187,50 @@ $(AIRFLOW_SENTINELS_FOLDER)/airflow_env_$(AIRFLOW_ENV_VARS_HASH).sentinel: | $(A
 	echo 'AIRFLOW__CORE__FERNET_KEY=rSbqA7rweQEHr0qi6rjzJHKUc2zxUqbEypFSk3Qt3ms=' >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
 	echo AIRFLOW__CORE__LOAD_EXAMPLES=False >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
 	echo AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS)
-	echo "vars:" $(AIRFLOW_ENVIRONMENT_VARS)
-	for var in $(AIRFLOW_ENVIRONMENT_VARS); do \
-		echo $$var >> $(AIRFLOW_DOCKER_ENVIRONMENT_VARS); \
-	done
+	touch $@
+
+# If not a requirements.txt is supplied, we download the version from Brokkr
+$(AIRFLOW_REQUIREMENTS_TXT): $(AIRFLOW_WORKFOLDER)
+	$(info Downloading requirements.txt for version $(AIRFLOW_VERSION) of Airflow)
+	curl --fail -s \
+	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/requirements.$(AIRFLOW_VERSION).txt" \
+	-o $@;
+
+# This creates the docker-compose.yml file.
+$(AIRFLOW_DOCKER_COMPOSE_FILE): $(AIRFLOW_SENTINELS_FOLDER)/airflow_webserver_port_$(AIRFLOW_WEBSERVER_PORT).sentinel \
+$(AIRFLOW_ENVIRONMENT_VARS) $(AIRFLOW_DOCKERFILE) $(AIRFLOW_DOCKER_ENVIRONMENT_VARS) \
+$(AIRFLOW_VERSION_SENTINEL) $(AIRFLOW_REQUIREMENTS_TXT)
+	$(info Creating $(AIRFLOW_DOCKER_COMPOSE_FILE))
+	echo "$$AIRFLOW_DOCKER_COMPOSE" > $(AIRFLOW_WORKFOLDER)/docker-compose.yml
+	# If requirements.txt or version have changed we rebuild
+	echo "$?" | grep -q "$(AIRFLOW_VERSION_SENTINEL)\|$(AIRFLOW_REQUIREMENTS_TXT)" \
+		&& docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) build
+
+# Ensure that we have started the PostgreSQL and ran airflow initdb
+$(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel: $(AIRFLOW_DOCKER_COMPOSE_FILE)
+	echo Starting PostgreSQL container
+	DOCKERFILE=$(AIRFLOW_DOCKERFILE) docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
+	# Wait for postgreSQL to start
+	sleep 5
+	echo Initializing airflow Postgres database
+	docker-compose -f ${AIRFLOW_DOCKER_COMPOSE_FILE} run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver airflow initdb
+	touch $@
+
+# If user has not supplied a Airflow variables file, create an empty one
+$(AIRFLOW_VARIABLES): $(AIRFLOW_SENTINELS_FOLDER)
+	touch $@
+
+# User input of Airflow variables. These are imported into the Airflow db
+$(AIRFLOW_VARIABLES_SENTINEL): $(AIRFLOW_SENTINELS_FOLDER)/db-init.sentinel $(AIRFLOW_VARIABLES)
+	echo Import airflow variables from $(AIRFLOW_VARIABLES)
+	if [ -f "$(AIRFLOW_VARIABLES)" ]; then \
+	 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver airflow variables -i /code/$(AIRFLOW_VARIABLES); \
+	fi
+	$(info Done importing variables)
+	touch $@
+
+# Extra docker environment vars
+# This could be a file added to version control for example
+# This file is included in the docker-compose
+$(AIRFLOW_ENVIRONMENT_VARS): | $(AIRFLOW_SENTINELS_FOLDER)
 	touch $@
