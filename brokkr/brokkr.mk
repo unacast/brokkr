@@ -40,6 +40,6 @@ brokkr.clean: ## Clean up the .brokkr folder. Triggers a new download of plugins
 
 .PHONY: brokkr.update
 brokkr.update: ## Download latest Brokkr version
-	curl https://raw.githubusercontent.com/$(BROKKR_REPO)/brokkr/master/scripts/install.sh | bash
+	curl https://raw.githubusercontent.com/$(BROKKR_REPO)/master/scripts/install.sh | bash
 
-include brokkr/plugins/plugins.mk
+-include $(_BROKKR_PLUGINS_MK)
