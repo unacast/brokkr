@@ -36,7 +36,7 @@ airflow.logs: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Tail the local logs
 
 .PHONY: airflow.test
 airflow.test: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Run the tests found in /test
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e PYTHONPATH=$(AIRFLOW_DAGS_FOLDER):$(AIRFLOW_TESTS_FOLDER) test pytest -rA
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e PYTHONPATH=$(AIRFLOW_DAGS_FOLDER):$(AIRFLOW_TESTS_FOLDER) test pytest -rA $(AIRFLOW_TESTS_FOLDER)
 
 .PHONY: airflow.flake8
 airflow.flake8: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Run the flake8 agains dags folder
