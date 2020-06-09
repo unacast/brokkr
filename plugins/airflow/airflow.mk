@@ -69,7 +69,12 @@ airflow.venv: ## Create a virtual environment folder for Code-completion and tes
 	virtualenv -p python3 $(AIRFLOW_VIRTUAL_ENV_FOLDER); \
 	source $(AIRFLOW_VIRTUAL_ENV_FOLDER)/bin/activate; \
 	export AIRFLOW_GPL_UNIDECODE="yes"; \
-	pip install -r requirements.txt;
+	pip install -r $(AIRFLOW_REQUIREMENTS_TXT);
+
+.PHONY: airflow.pip_install
+airflow.pip_install: $(AIRFLOW_REQUIREMENTS_TXT) ## Run pip install -r requirements.txt. This is helpful in a CI environment, where we don't use Docker.
+	SLUGIFY_USES_TEXT_UNIDECODE=yes pip install -r $(AIRFLOW_REQUIREMENTS_TXT)
+
 
 
 #####################################################################

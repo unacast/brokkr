@@ -6,16 +6,15 @@ BROKKR_REPO ?= unacast/brokkr
 _BROKKR_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 # The dir for where to download the dependencies
 _BROKKR_PLUGINS_DIR := $(_BROKKR_DIR)plugins
-# A hash of the plugins, so that we can spot changes
-_BROKKR_PLUGINS_SENTINEL := $(_BROKKR_PLUGINS_DIR)/$(shell echo '$(BROKKR_PLUGINS)' | md5sum | cut -d ' ' -f1).sentinel
+# A hash, and sentinel, of the plugins, so that we can spot changes
+_BROKKR_PLUGINS_HASH=$(shell echo '$(BROKKR_PLUGINS)' | md5sum | cut -d ' ' -f1)
+_BROKKR_PLUGINS_SENTINEL := $(_BROKKR_PLUGINS_DIR)/$(_BROKKR_PLUGINS_HASH).sentinel
 # The dependencies file, a working file for adding "include" to downloaded plugins
 _BROKKR_PLUGINS_MK := $(_BROKKR_PLUGINS_DIR)/plugins.mk
 
-# Create the local Brokkr folder for storing all plugins
-$(_BROKKR_PLUGINS_DIR):
-	mkdir -p $@
 # Create a new sentinel everytime the plugins changes. This triggers a new download.
-$(_BROKKR_PLUGINS_SENTINEL): $(_BROKKR_PLUGINS_DIR)
+$(_BROKKR_PLUGINS_SENTINEL):
+	mkdir -p $(_BROKKR_PLUGINS_DIR)
 	touch $@
 
 # This is the target that downloads the referenced makefiles
