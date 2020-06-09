@@ -7,7 +7,7 @@ _BROKKR_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 # The dir for where to download the dependencies
 _BROKKR_PLUGINS_DIR := $(_BROKKR_DIR)plugins
 # A hash of the plugins, so that we can spot changes
-_BROKKR_PLUGINS_SENTINEL := $(_BROKKR_PLUGINS_DIR)/$(shell echo '$(BROKKR_PLUGINS)' | md5).sentinel
+_BROKKR_PLUGINS_SENTINEL := $(_BROKKR_PLUGINS_DIR)/$(shell echo '$(BROKKR_PLUGINS)' | md5sum | cut -d ' ' -f1).sentinel
 # The dependencies file, a working file for adding "include" to downloaded plugins
 _BROKKR_PLUGINS_MK := $(_BROKKR_PLUGINS_DIR)/plugins.mk
 
@@ -23,7 +23,7 @@ $(_BROKKR_PLUGINS_SENTINEL): $(_BROKKR_PLUGINS_DIR)
 # http(s) url's are converted to a filename safe download path
 $(_BROKKR_PLUGINS_MK): $(_BROKKR_PLUGINS_SENTINEL)
 	# Clean working dir, except sentinel
-	find $(_BROKKR_PLUGINS_DIR) -type f -not -name "`basename $(_BROKKR_PLUGINS_SENTINEL)`" | xargs rm
+	find $(_BROKKR_PLUGINS_DIR) -type f -not -name "`basename $(_BROKKR_PLUGINS_SENTINEL)`" | xargs rm || echo no files to delete
 	for var in $(BROKKR_PLUGINS); do \
 		plugin_version=`echo $$var | cut -d '@' -f 2`;\
 		plugin_path=`echo $$var | cut -d '@' -f 1`; \
