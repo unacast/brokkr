@@ -65,7 +65,7 @@ airflow.rm: $(AIRFLOW_WORKFOLDER)/docker-compose.yml ## Remove docker images. Us
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) rm
 
 .PHONY: airflow.venv
-airflow.venv: ## Create a virtual environment folder for Code-completion and tests inside your IDE
+airflow.venv: $(AIRFLOW_REQUIREMENTS_TXT) ## Create a virtual environment folder for Code-completion and tests inside your IDE
 	virtualenv -p python3 $(AIRFLOW_VIRTUAL_ENV_FOLDER); \
 	source $(AIRFLOW_VIRTUAL_ENV_FOLDER)/bin/activate; \
 	export AIRFLOW_GPL_UNIDECODE="yes"; \
