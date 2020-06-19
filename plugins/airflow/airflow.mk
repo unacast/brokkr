@@ -2,6 +2,7 @@
 AIRFLOW_WORKFOLDER ?= .airflow
 AIRFLOW_VARIABLES_SENTINEL=$(AIRFLOW_WORKFOLDER)/variables-imported.sentinel
 AIRFLOW_INIT_CHECK_SENTINEL=$(AIRFLOW_WORKFOLDER)/airflow-initiated.sentinel
+AIRFLOW_BUILD_SENTINEL=$(AIRFLOW_WORKFOLDER)/airflow-build.sentinel
 AIRFLOW_DB_INIT_SENTINEL=$(AIRFLOW_WORKFOLDER)/db-init.sentinel
 AIRFLOW_DOCKER_COMPOSE_FILE ?= docker-compose.yml
 AIRFLOW_SENTINELS_FOLDER=$(AIRFLOW_WORKFOLDER)/sentinels
@@ -13,10 +14,9 @@ AIRFLOW_VIRTUAL_ENV_FOLDER ?= .venv
 AIRFLOW_VARIABLES_JSON ?= airflow-variables.json
 AIRFLOW_REQUIREMENTS_TXT ?= requirements.txt
 AIRFLOW_REQUIREMENTS_EXTRA_TXT ?= requirements.extra.txt
-AIRFLOW_REQUIREMENTS_TEST_TXT ?= requirements.test.txt
 
 .PHONY: airflow.start
-airflow.start: $(AIRFLOW_VARIABLES_SENTINEL) ## Start Airflow server
+airflow.start: $(AIRFLOW_VARIABLES_SENTINEL) $(AIRFLOW_BUILD_SENTINEL)## Start Airflow server
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d webserver
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d scheduler
@@ -31,11 +31,11 @@ airflow.logs: $(AIRFLOW_INIT_CHECK_SENTINEL) ## Tail the local logs
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) logs --follow
 
 .PHONY: airflow.test
-airflow.test: $(AIRFLOW_INIT_CHECK_SENTINEL) ## Run the tests found in /test
+airflow.test: $(AIRFLOW_INIT_CHECK_SENTINEL) $(AIRFLOW_BUILD_SENTINEL)## Run the tests found in /test
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm  test pytest -rA code/tests
 
 .PHONY: airflow.flake8
-airflow.flake8: $(AIRFLOW_INIT_CHECK_SENTINEL) ## Run the flake8 agains dags folder
+airflow.flake8: $(AIRFLOW_INIT_CHECK_SENTINEL) $(AIRFLOW_BUILD_SENTINEL)## Run the flake8 agains dags folder
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm test flake8 /code/dags
 	@echo Flake 8 OK!s
 
@@ -154,4 +154,8 @@ $(AIRFLOW_DB_INIT_SENTINEL): $(AIRFLOW_INIT_CHECK_SENTINEL)
 	sleep 10
 	echo Initializing airflow MySQL database
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver airflow initdb
+	touch $@
+
+$(AIRFLOW_BUILD_SENTINEL): $(AIRFLOW_REQUIREMENTS_EXTRA_TXT) $(AIRFLOW_REQUIREMENTS_TXT)
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) build
 	touch $@
