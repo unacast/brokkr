@@ -91,6 +91,10 @@ airflow.init: .env ## Initialise Airflow in project
 	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/docker-environment-variables.properties" \
 	-o docker-environment-variables.properties;
 
+	curl --fail -s \
+	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/Dockerfile" \
+	-o Dockerfile;
+
 	echo "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud-platform://?&extra__google_cloud_platform__scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform&extra__google_cloud_platform__project=${GOOGLE_DEFAULT_PROJECT}" >> docker-environment-variables.properties
 	echo "AIRFLOW_CONN_GOOGLE_BIGQUERY_DEFAULT=google-cloud-platform://?&extra__google_cloud_platform__scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform&extra__google_cloud_platform__project=${GOOGLE_DEFAULT_PROJECT}" >> docker-environment-variables.properties
 	echo "Done init of Airflow"
@@ -113,6 +117,9 @@ airflow.init: .env ## Initialise Airflow in project
 $(AIRFLOW_INIT_CHECK_SENTINEL): $(AIRFLOW_WORKFOLDER)
 ifeq (,$(wildcard $(AIRFLOW_DOCKER_COMPOSE_FILE)))
 	$(error Could not find $(AIRFLOW_DOCKER_COMPOSE_FILE). Maybe you should run make airflow.init?)
+endif
+ifeq (,$(wildcard Dockerfile))
+	$(error Could not find Dockerfile. Maybe you should run make airflow.init?)
 endif
 ifeq (,$(wildcard $(AIRFLOW_VARIABLES_JSON)))
 	$(error Could not find $(AIRFLOW_VARIABLES_JSON). Maybe you should run make airflow.init?)
