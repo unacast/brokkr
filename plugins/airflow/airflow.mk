@@ -6,7 +6,7 @@ AIRFLOW_DB_INIT_SENTINEL=$(AIRFLOW_WORKFOLDER)/db-init.sentinel
 AIRFLOW_DOCKER_COMPOSE_FILE ?= docker-compose.yml
 AIRFLOW_SENTINELS_FOLDER=$(AIRFLOW_WORKFOLDER)/sentinels
 COMPOSE_PROJECT_NAME=$(notdir $(CURDIR))
-BROKKR_AIRFLOW_PLUGIN_VERSION=$(shell echo $(BROKKR_PLUGINS) | grep -o1 -Ei "airflow/airflow@([0-9a-z\.]+)" | cut -d "@" -f2)
+BROKKR_AIRFLOW_PLUGIN_VERSION=$(shell echo $(BROKKR_PLUGINS) | grep -o1 -Ei "airflow/airflow@([0-9a-z\._]+)" | cut -d "@" -f2)
 AIRFLOW_VERSION ?= 1.10.6
 AIRFLOW_DOCKER_IMAGE ?= unacast/airflow:$(AIRFLOW_VERSION)
 AIRFLOW_VIRTUAL_ENV_FOLDER ?= .venv
@@ -20,6 +20,7 @@ airflow.start: $(AIRFLOW_VARIABLES_SENTINEL) ## Start Airflow server
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d webserver
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d scheduler
+	echo "Now running at http://localhost:$(shell grep "AIRFLOW_WEBSERVER_PORT" .env | cut -d "=" -f2)/"
 
 .PHONY: airflow.stop
 airflow.stop: $(AIRFLOW_INIT_CHECK_SENTINEL) ## Stop running Airflow server
@@ -90,8 +91,10 @@ airflow.init: .env ## Initialise Airflow in project
 	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/docker-environment-variables.properties" \
 	-o docker-environment-variables.properties;
 
-	echo AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud-platform://?&extra__google_cloud_platform__scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform&extra__google_cloud_platform__project=${GOOGLE_DEFAULT_PROJECT} >> docker-environment-variables.properties
-	echo AIRFLOW_CONN_GOOGLE_BIGQUERY_DEFAULT=google-cloud-platform://?&extra__google_cloud_platform__scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform&extra__google_cloud_platform__project=${GOOGLE_DEFAULT_PROJECT} >> docker-environment-variables.properties
+	echo "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud-platform://?&extra__google_cloud_platform__scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform&extra__google_cloud_platform__project=${GOOGLE_DEFAULT_PROJECT}" >> docker-environment-variables.properties
+	echo "AIRFLOW_CONN_GOOGLE_BIGQUERY_DEFAULT=google-cloud-platform://?&extra__google_cloud_platform__scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform&extra__google_cloud_platform__project=${GOOGLE_DEFAULT_PROJECT}" >> docker-environment-variables.properties
+	echo "Done init of Airflow"
+	echo "Edit personal settings in .env file!"
 
 .env:
 	echo "Creating .env file"
