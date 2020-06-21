@@ -16,7 +16,7 @@ AIRFLOW_REQUIREMENTS_TXT ?= requirements.txt
 AIRFLOW_REQUIREMENTS_EXTRA_TXT ?= requirements.extra.txt
 
 .PHONY: airflow.start
-airflow.start: $(AIRFLOW_VARIABLES_SENTINEL) $(AIRFLOW_BUILD_SENTINEL)## Start Airflow server
+airflow.start: $(AIRFLOW_BUILD_SENTINEL) $(AIRFLOW_VARIABLES_SENTINEL) ## Start Airflow server
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d webserver
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d scheduler
@@ -31,11 +31,11 @@ airflow.logs: $(AIRFLOW_INIT_CHECK_SENTINEL) ## Tail the local logs
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) logs --follow
 
 .PHONY: airflow.test
-airflow.test: $(AIRFLOW_INIT_CHECK_SENTINEL) $(AIRFLOW_BUILD_SENTINEL)## Run the tests found in /test
+airflow.test: $(AIRFLOW_BUILD_SENTINEL) $(AIRFLOW_INIT_CHECK_SENTINEL) ## Run the tests found in /test
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm  test pytest -rA code/tests
 
 .PHONY: airflow.flake8
-airflow.flake8: $(AIRFLOW_INIT_CHECK_SENTINEL) $(AIRFLOW_BUILD_SENTINEL)## Run the flake8 agains dags folder
+airflow.flake8:$(AIRFLOW_BUILD_SENTINEL) $(AIRFLOW_INIT_CHECK_SENTINEL) ## Run the flake8 agains dags folder
 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm test flake8 /code/dags
 	@echo Flake 8 OK!s
 
