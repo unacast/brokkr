@@ -113,7 +113,7 @@ airflow.init: .env ## Initialise Airflow in project
 ############################################################
 
 # Check that we have created the needed files for running Airflow
-$(AIRFLOW_INIT_CHECK_SENTINEL): $(AIRFLOW_WORKFOLDER)
+$(AIRFLOW_INIT_CHECK_SENTINEL):
 ifeq (,$(wildcard $(AIRFLOW_DOCKER_COMPOSE_FILE)))
 	$(error Could not find $(AIRFLOW_DOCKER_COMPOSE_FILE). Maybe you should run make airflow.init?)
 endif
@@ -130,11 +130,6 @@ ifeq (,$(wildcard $(AIRFLOW_REQUIREMENTS_EXTRA_TXT)))
 	$(error Could not find $(AIRFLOW_REQUIREMENTS_EXTRA_TXT). Maybe you should run make airflow.init?)
 endif
 	touch $@
-
-# Create the working folder. This is where the intermediate files like docker-compose.yml
-# and sentinel files are stored.
-$(AIRFLOW_WORKFOLDER):
-	mkdir -p $(AIRFLOW_WORKFOLDER)
 
 # Import Airflow variables json file
 $(AIRFLOW_VARIABLES_SENTINEL): $(AIRFLOW_DB_INIT_SENTINEL) $(AIRFLOW_VARIABLES_JSON)
