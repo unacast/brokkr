@@ -31,7 +31,7 @@ airflow.logs: $(AIRFLOW_INIT_CHECK_SENTINEL) ## Tail the local logs
 
 .PHONY: airflow.test
 airflow.test: $(AIRFLOW_BUILD_SENTINEL) $(AIRFLOW_INIT_CHECK_SENTINEL) ## Run the tests found in /test
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm  test pytest -rA code/tests
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm  test pytest -rA /code/tests
 
 .PHONY: airflow.flake8
 airflow.flake8:$(AIRFLOW_BUILD_SENTINEL) $(AIRFLOW_INIT_CHECK_SENTINEL) ## Run the flake8 agains dags folder
