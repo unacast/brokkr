@@ -64,7 +64,7 @@ airflow.venv: $(AIRFLOW_REQUIREMENTS_TXT) $(AIRFLOW_REQUIREMENTS_EXTRA_TXT) $(AI
 	virtualenv -p python3 $(AIRFLOW_VIRTUAL_ENV_FOLDER); \
 	source $(AIRFLOW_VIRTUAL_ENV_FOLDER)/bin/activate; \
 	export AIRFLOW_GPL_UNIDECODE="yes"; \
-	pip install -r $(AIRFLOW_REQUIREMENTS_TXT);
+	pip install -r $(AIRFLOW_REQUIREMENTS_TXT); \
 	pip install -r $(AIRFLOW_REQUIREMENTS_EXTRA_TXT);
 
 .PHONY: airflow.pip_install
