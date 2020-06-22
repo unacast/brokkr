@@ -5,7 +5,6 @@ AIRFLOW_INIT_CHECK_SENTINEL=$(AIRFLOW_WORKFOLDER)/airflow-initiated.sentinel
 AIRFLOW_BUILD_SENTINEL=$(AIRFLOW_WORKFOLDER)/airflow-build.sentinel
 AIRFLOW_DB_INIT_SENTINEL=$(AIRFLOW_WORKFOLDER)/db-init.sentinel
 AIRFLOW_DOCKER_COMPOSE_FILE ?= docker-compose.yml
-AIRFLOW_SENTINELS_FOLDER=$(AIRFLOW_WORKFOLDER)/sentinels
 COMPOSE_PROJECT_NAME=$(notdir $(CURDIR))
 BROKKR_AIRFLOW_PLUGIN_VERSION=$(shell echo $(BROKKR_PLUGINS) | grep -o1 -Ei "airflow/airflow@([0-9a-z\._]+)" | cut -d "@" -f2)
 AIRFLOW_VERSION ?= 1.10.6
@@ -105,7 +104,7 @@ airflow.init: .env ## Initialise Airflow in project
 	echo "AIRFLOW_WEBSERVER_PORT=8080" >> .env
 	echo "DAGS_FOLDER=dags" >> .env
 	echo "TESTS_FOLDER=tests" >> .env
-	echo "AIRFLOW_VARIABLES=airflow-variables.json" >> .env
+	echo "AIRFLOW_VARIABLES=$(AIRFLOW_VARIABLES_JSON)" >> .env
 
 
 ############################################################
