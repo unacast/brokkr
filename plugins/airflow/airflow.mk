@@ -11,7 +11,7 @@ BROKKR_AIRFLOW_PLUGIN_VERSION=$(shell echo $(BROKKR_PLUGINS) | grep -o1 -Ei "air
 AIRFLOW_VERSION ?= 1.10.6
 AIRFLOW_DOCKER_IMAGE ?= unacast/airflow:$(AIRFLOW_VERSION)
 AIRFLOW_VIRTUAL_ENV_FOLDER ?= .venv
-AIRFLOW_VARIABLES_JSON ?= airflow-variables.json
+AIRFLOW_VARIABLES_JSON ?= airflow-variables.local.json
 AIRFLOW_REQUIREMENTS_TXT ?= requirements.txt
 AIRFLOW_REQUIREMENTS_EXTRA_TXT ?= requirements.extra.txt
 
