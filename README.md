@@ -4,17 +4,14 @@ A Makefile dependency tool
 ## Install
 Brokkr installs itself in your project by either adding a Makefile or adding itself to an existing Makefile. This oneliner will install the latest version.
 
-`curl https://raw.githubusercontent.com/judoole/brokkr/master/scripts/install.sh | bash`
+`curl https://raw.githubusercontent.com/unacast/brokkr/master/scripts/install.sh | bash`
 
 ## Usage
-Add references to the online Makefiles you would like to add to your project/Makefile. This could be Brokkr-specific makefiles, like the ones under [plugins](https://github.com/judoole/brokkr/tree/master/plugins/) or Makefiles on a http(s) url.
+Add references to the online Makefiles you would like to add to your project/Makefile. This could be Brokkr-specific makefiles, like the ones under [plugins](https://github.com/unacast/brokkr/tree/master/plugins/).
 
 Example:
 ```
-# Her we reference a versioned (git sha c09a208) of the Brokkr plugin help, 
-# and an url to a hello world markdown file
-BROKKR_PLUGINS = help/help-c09a208.mk \
-                 https://raw.githubusercontent.com/judoole/brokkr/master/example/helloworld.mk
+BROKKR_PLUGINS = help/help@master airflow/airflow@v0.4.3
 .DEFAULT_GOAL := help
 ```
 
