@@ -44,9 +44,13 @@ services:
     working_dir: /code
     environment:
       - PYTHONPATH=/code/dags:/code/tests
+      - AIRFLOW__WEBSERVER__WEB_SERVER_NAME=localhost
+      - TEST_DAGS_FOLDER=/code/dags
     volumes:
       - ./${DAGS_FOLDER}/:/code/dags/:cached
       - ./${TESTS_FOLDER}:/code/tests:cached
+      - ${PWD}/output:/code/output
+      - ${PWD}/airflow-variables.local.json:/code/airflow-variables.local.json
 
 volumes:
   data-volume:
