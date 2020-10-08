@@ -7,7 +7,7 @@ _BROKKR_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 # The dir for where to download the dependencies
 _BROKKR_PLUGINS_DIR := $(_BROKKR_DIR)plugins
 # A hash, and sentinel, of the plugins, so that we can spot changes
-_BROKKR_PLUGINS_HASH=$(shell echo '$(BROKKR_PLUGINS)' | md5sum | cut -d ' ' -f1)
+_BROKKR_PLUGINS_HASH=$(shell echo '$(BROKKR_PLUGINS)' | sha1sum | cut -d ' ' -f1)
 _BROKKR_PLUGINS_SENTINEL := $(_BROKKR_PLUGINS_DIR)/$(_BROKKR_PLUGINS_HASH).sentinel
 # The dependencies file, a working file for adding "include" to downloaded plugins
 _BROKKR_PLUGINS_MK := $(_BROKKR_PLUGINS_DIR)/plugins.mk
