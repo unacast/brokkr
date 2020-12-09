@@ -13,8 +13,11 @@ define deploy
 	# Get latest, so we can diff if there are changes
 	git fetch
 	# Check if there is staged code or changes. Exit if so
-	git diff @{push} --shortstat --exit-code ||(echo "There's git diff ⤴️, exiting..."; exit $$1)
-	gh api repos/:owner/:repo/deployments -H "Accept: application/vnd.github.ant-man-preview+json"\
-	 --method POST -F ref=":branch" -F environment="$(strip $1)" -F auto_merge=${AUTO_MERGE} \
-	 -F task="$(strip $(if $2, $2, deploy))"
+	if git fetch && git diff @{push} --shortstat --exit-code; then \
+		gh api repos/:owner/:repo/deployments -H "Accept: application/vnd.github.ant-man-preview+json" \
+	               --method POST -F ref=":branch" -F environment="$(strip $1)" -F auto_merge=${AUTO_MERGE} \
+         	      -F task="$(strip $(if $2, $2, deploy))"; \
+	else \
+		echo "There is a git diff ⤴️, exiting..."; \
+	fi;
 endef
