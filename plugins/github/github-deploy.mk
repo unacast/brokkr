@@ -10,7 +10,7 @@
 AUTO_MERGE=true
 define deploy
 	@echo Checking diff local against remote
-	./github-deploy.sh \
+	$(dir $(abspath $(lastword $(MAKEFILE_LIST))))/github-deploy.sh \
 	$(strip $1) \
 	${AUTO_MERGE} \
 	$(strip $(if $2, $2, deploy))
