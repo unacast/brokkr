@@ -10,7 +10,7 @@
 AUTO_MERGE=true
 define deploy
 	@echo Checking diff local against remote
-	./deploy.sh \
+	./github-deploy.sh \
 	$(strip $1) \
 	${AUTO_MERGE} \
 	$(strip $(if $2, $2, deploy))

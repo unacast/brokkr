@@ -1,5 +1,6 @@
 .SILENT: ;
-BROKKR_PLUGINS = help/help@c09a208 git/git-info@e3389a1
+SHA := `git rev-parse --short HEAD`
+BROKKR_PLUGINS := help/help@$(SHA) git/git-info@$(SHA)
 .DEFAULT_GOAL := help
 
 .PHONY: hello.world

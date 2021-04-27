@@ -30,6 +30,9 @@ $(_BROKKR_PLUGINS_MK): $(_BROKKR_PLUGINS_SENTINEL)
 		url="https://raw.githubusercontent.com/$(BROKKR_REPO)/$${plugin_version}/plugins/$${plugin_path}.mk"; \
 		echo "Downloading $${url}"; \
 		curl --fail -s "$$url" -o $(_BROKKR_PLUGINS_DIR)/$${plugin_path}.mk; \
+		url="https://raw.githubusercontent.com/$(BROKKR_REPO)/$${plugin_version}/plugins/$${plugin_path}.sh"; \
+		echo "Downloading $${url}"; \
+		curl --fail -s "$$url" -o $(_BROKKR_PLUGINS_DIR)/$${plugin_path}.sh; \
 		echo include $(_BROKKR_PLUGINS_DIR)/$${plugin_path}.mk >> $@; \
 	done
 
