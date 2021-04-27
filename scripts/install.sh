@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION=${VERSION:=latest}
-TAG=`curl -Ls -o /dev/null -w %{url_effective} https://github.com/unacast/brokkr/releases/${VERSION} | cut -d '/' -f8`
+TAG=$(curl -Ls -o /dev/null -w %"{url_effective}" https://github.com/unacast/brokkr/releases/${VERSION} | cut -d '/' -f8)
 
 # Download brokkr.mk for TAG into brokkr folder
 mkdir -p brokkr
@@ -9,12 +9,14 @@ curl --fail -s "https://raw.githubusercontent.com/unacast/brokkr/${TAG}/brokkr/b
 
 # Add Brokkr to Makefile or create Makefile if it does not exist
 if [ ! -f "Makefile" ]; then
-	echo '.SILENT: ;' > Makefile
-	echo "BROKKR_PLUGINS = help/help@${TAG}" >> Makefile
-	echo '.DEFAULT_GOAL := help' >> Makefile
-	echo -e '\n-include ./brokkr/brokkr.mk' >> Makefile
-elif [[ ! `grep 'include ./brokkr/brokkr.mk' Makefile` ]]; then
-	echo -e '\n-include ./brokkr/brokkr.mk' >> Makefile
+  {
+	  echo -e '\n-include ./brokkr/brokkr.mk'
+    echo '.SILENT: ;'
+    echo "BROKKR_PLUGINS = help/help@${TAG}"
+    echo '.DEFAULT_GOAL := help'
+  } > Makefile
+elif ! grep -q 'include ./brokkr/brokkr.mk' Makefile; then
+	echo -e "\n-include ./brokkr/brokkr.mk\n$(cat Makefile)" > Makefile
 fi
 
 # Add version
