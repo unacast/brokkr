@@ -20,6 +20,7 @@ $(_BROKKR_PLUGINS_SENTINEL):
 # This is the target that downloads the referenced makefiles
 # Depends on .brokkr-folder and subfolders for plugins being loaded.
 # http(s) url's are converted to a filename safe download path
+$(_BROKKR_PLUGINS_MK): .SHELLFLAGS := -c
 $(_BROKKR_PLUGINS_MK): $(_BROKKR_PLUGINS_SENTINEL)
 	# Clean working dir, except sentinel
 	find $(_BROKKR_PLUGINS_DIR) -type f -not -name "`basename $(_BROKKR_PLUGINS_SENTINEL)`" | xargs rm || echo no files to delete
