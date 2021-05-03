@@ -16,7 +16,9 @@ if [ ! -f "Makefile" ]; then
     echo '.DEFAULT_GOAL := help'
   } > Makefile
 elif ! grep -q 'include ./brokkr/brokkr.mk' Makefile; then
-	echo -e "\n-include ./brokkr/brokkr.mk\n$(cat Makefile)" > Makefile
+  old_makefile=$(cat Makefile)
+	echo -e "\n-include ./brokkr/brokkr.mk" > Makefile
+	echo "$old_makefile" >> Makefile
 fi
 
 # Add version
