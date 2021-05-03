@@ -14,8 +14,8 @@ _BROKKR_PLUGINS_MK := $(_BROKKR_PLUGINS_DIR)/plugins.mk
 
 # Create a new sentinel everytime the plugins changes. This triggers a new download.
 $(_BROKKR_PLUGINS_SENTINEL):
-	mkdir -p $(_BROKKR_PLUGINS_DIR)
-	touch $@
+	@mkdir -p $(_BROKKR_PLUGINS_DIR)
+	@touch $@
 
 # This is the target that downloads the referenced makefiles
 # Depends on .brokkr-folder and subfolders for plugins being loaded.
