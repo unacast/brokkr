@@ -14,16 +14,17 @@ _BROKKR_PLUGINS_MK := $(_BROKKR_PLUGINS_DIR)/plugins.mk
 
 # Create a new sentinel everytime the plugins changes. This triggers a new download.
 $(_BROKKR_PLUGINS_SENTINEL):
-	mkdir -p $(_BROKKR_PLUGINS_DIR)
-	touch $@
+	@mkdir -p $(_BROKKR_PLUGINS_DIR)
+	@touch $@
 
 # This is the target that downloads the referenced makefiles
 # Depends on .brokkr-folder and subfolders for plugins being loaded.
 # http(s) url's are converted to a filename safe download path
+$(_BROKKR_PLUGINS_MK): .SHELLFLAGS := -c
 $(_BROKKR_PLUGINS_MK): $(_BROKKR_PLUGINS_SENTINEL)
-	# Clean working dir, except sentinel
-	find $(_BROKKR_PLUGINS_DIR) -type f -not -name "`basename $(_BROKKR_PLUGINS_SENTINEL)`" | xargs rm || echo no files to delete
-	for var in $(BROKKR_PLUGINS); do \
+	@# Clean working dir, except sentinel
+	@find $(_BROKKR_PLUGINS_DIR) -type f -not -name "`basename $(_BROKKR_PLUGINS_SENTINEL)`" | xargs rm
+	@for var in $(BROKKR_PLUGINS); do \
 		plugin_version=`echo $$var | cut -d '@' -f 2`;\
 		plugin_path=`echo $$var | cut -d '@' -f 1`; \
 		mkdir -p $(_BROKKR_PLUGINS_DIR)/`dirname $$plugin_path`; \

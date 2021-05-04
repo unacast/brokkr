@@ -8,6 +8,8 @@
 #   $(call, some-env) <- deploy is the default task
 #   $(call, some-env, some-task)
 AUTO_MERGE=true
+1:=
+2:=
 define deploy
 	@echo Checking diff local against remote
 	$(dir $(abspath $(lastword $(MAKEFILE_LIST))))github-deploy.sh \
