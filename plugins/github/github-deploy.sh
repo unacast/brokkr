@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -eu -o pipefail
+
 environment=$1
 auto_merge=$2
 task=$3
