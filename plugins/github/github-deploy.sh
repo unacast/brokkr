@@ -12,11 +12,11 @@ if git fetch && git diff @"{push}" --shortstat --exit-code >/dev/null 2>&1; then
     --method POST -F ref=":branch" -F environment="$environment" -F auto_merge="$auto_merge" \
     -F task="$task"
 
-  echo "Looking for active runs..." && sleep 10
+  echo "Looking for active runs..." && sleep 5
 
   # List all runs for current branch
   branch=$(git branch --show-current)
-  run_id=$(gh run list --limit 1 | grep "$branch" | grep -v "completed" | rev | cut -f1 | rev)
+  run_id=$(gh run list --limit 1 | grep "$branch" | grep -v "completed" | cut -f7)
   if [ "$run_id" ]; then
     gh run watch "$run_id"
   else
