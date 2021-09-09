@@ -8,6 +8,7 @@
 #   $(call, some-env) <- deploy is the default task
 #   $(call, some-env, some-task)
 AUTO_MERGE=true
+PAYLOAD="{}"
 1:=
 2:=
 define deploy
@@ -15,5 +16,6 @@ define deploy
 	$(dir $(abspath $(lastword $(filter %.mk, $(MAKEFILE_LIST)))))github-deploy.sh \
 	$(strip $1) \
 	${AUTO_MERGE} \
-	$(strip $(if $2, $2, deploy))
+	$(strip $(if $2, $2, deploy)) \
+	${PAYLOAD}
 endef
