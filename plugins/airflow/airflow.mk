@@ -135,31 +135,31 @@ endif
 
 # Import Airflow variables json file
 $(AIRFLOW_VARIABLES_SENTINEL): $(AIRFLOW_DB_INIT_SENTINEL) $(AIRFLOW_VARIABLES_JSON)
-    echo Import airflow variables from $(AIRFLOW_VARIABLES_JSON)
-    if [ -f "$(AIRFLOW_VARIABLES_JSON)" ]; then \
+	echo Import airflow variables from $(AIRFLOW_VARIABLES_JSON)
+	if [ -f "$(AIRFLOW_VARIABLES_JSON)" ]; then \
 		if [ $(AIRFLOW_MAJOR_VERSION) -eq "2" ]; then \
-        	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -v ${PWD}/$(AIRFLOW_VARIABLES_JSON):/code/airflow-variables.json webserver variables import /code/airflow-variables.json; \
+			docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -v ${PWD}/$(AIRFLOW_VARIABLES_JSON):/code/airflow-variables.json webserver variables import /code/airflow-variables.json; \
 		else \
 			docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -v ${PWD}/$(AIRFLOW_VARIABLES_JSON):/code/airflow-variables.json webserver airflow variables -i /code/airflow-variables.json; \
 		fi
-    fi
-    echo Done importing variables
-    touch $@
+	fi
+	echo Done importing variables
+	touch $@
 
 # Ensure that we have started the MySQL and ran airflow initdb
 $(AIRFLOW_DB_INIT_SENTINEL): $(AIRFLOW_INIT_CHECK_SENTINEL)
-    echo Starting MySQL container
-    docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
-    # Wait for MySQL to start
-    sleep 10
-    echo Initializing airflow MySQL database
-    if [ $(AIRFLOW_MAJOR_VERSION) -eq "2" ]; then \
-        docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver db init; \
-        docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver users create -e admin@example.org -u airflow -p airflow -r Admin -f airflow -l airflow; \
-    else \
-        docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver initdb; \
-    fi
-    touch $@
+	echo Starting MySQL container
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) up -d db
+	# Wait for MySQL to start
+	sleep 10
+	echo Initializing airflow MySQL database
+	if [ $(AIRFLOW_MAJOR_VERSION) -eq "2" ]; then \
+		docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver db init; \
+		docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver users create -e admin@example.org -u airflow -p airflow -r Admin -f airflow -l airflow; \
+	else \
+		docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver initdb; \
+	fi
+	touch $@
 
 $(AIRFLOW_BUILD_SENTINEL): $(AIRFLOW_REQUIREMENTS_EXTRA_TXT) $(AIRFLOW_REQUIREMENTS_TXT)
 	mkdir -p $(AIRFLOW_WORKFOLDER)
