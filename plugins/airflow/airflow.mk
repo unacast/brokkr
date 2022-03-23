@@ -93,7 +93,7 @@ airflow.init: .env ## Initialise Airflow in project
 	-o docker-environment-variables.properties;
 
 	curl --fail -s \
-	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/Dockerfile" \
+	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/Dockerfile.Airflow${AIRFLOW_MAJOR_VERSION}" \
 	-o Dockerfile;
 
 	echo "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud-platform://?extra__google_cloud_platform__project=${GOOGLE_DEFAULT_PROJECT}" >> docker-environment-variables.properties
