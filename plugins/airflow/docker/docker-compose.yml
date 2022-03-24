@@ -20,8 +20,8 @@ services:
       - "${AIRFLOW_WEBSERVER_PORT}:8080"
     volumes:
       - ./${DAGS_FOLDER}/:/code/dags/:cached
-      - ${HOME}/.config:/root/.config:cached
-      - data-volume:/root/airflow/logs/
+      - ${HOME}/.config:/home/airflow/.config:cached
+      - data-volume:/opt/airflow/logs/
       - data-volume:/data/
     command: airflow webserver
 
@@ -34,8 +34,8 @@ services:
       - docker-environment-variables.properties
     volumes:
       - ./${DAGS_FOLDER}/:/code/dags/:cached
-      - ${HOME}/.config:/root/.config:cached
-      - data-volume:/root/airflow/logs/
+      - ${HOME}/.config:/home/airflow/.config:cached
+      - data-volume:/opt/airflow/logs/
       - data-volume:/data/
     command: airflow scheduler
 
@@ -51,6 +51,7 @@ services:
       - ./${TESTS_FOLDER}:/code/tests:cached
       - ${PWD}/output:/code/output
       - ${PWD}/airflow-variables.local.json:/code/airflow-variables.local.json
+      - ${HOME}/.config:/home/airflow/.config:cached
 
 volumes:
   data-volume:
