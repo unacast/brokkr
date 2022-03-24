@@ -1,0 +1,56 @@
+version: '3.7'
+services:
+  db:
+    image: mysql:5.7
+    environment:
+      - MYSQL_USER=airflow
+      - MYSQL_PASSWORD=airflow
+      - MYSQL_ROOT_PASSWORD=airflow
+      - MYSQL_DATABASE=airflow
+    command: --explicit_defaults_for_timestamp=1
+
+  webserver:
+    depends_on:
+      - db
+    build: .
+    working_dir: /code
+    env_file:
+      - docker-environment-variables.properties
+    ports:
+      - "${AIRFLOW_WEBSERVER_PORT}:8080"
+    volumes:
+      - ./${DAGS_FOLDER}/:/code/dags/:cached
+      - ${HOME}/.config:/root/.config:cached
+      - data-volume:/root/airflow/logs/
+      - data-volume:/data/
+    command: airflow webserver
+
+  scheduler:
+    depends_on:
+      - db
+    build: .
+    working_dir: /code
+    env_file:
+      - docker-environment-variables.properties
+    volumes:
+      - ./${DAGS_FOLDER}/:/code/dags/:cached
+      - ${HOME}/.config:/root/.config:cached
+      - data-volume:/root/airflow/logs/
+      - data-volume:/data/
+    command: airflow scheduler
+
+  test:
+    build: .
+    working_dir: /code
+    environment:
+      - PYTHONPATH=/code/dags:/code/tests
+      - AIRFLOW__WEBSERVER__WEB_SERVER_NAME=localhost
+      - TEST_DAGS_FOLDER=/code/dags
+    volumes:
+      - ./${DAGS_FOLDER}/:/code/dags/:cached
+      - ./${TESTS_FOLDER}:/code/tests:cached
+      - ${PWD}/output:/code/output
+      - ${PWD}/airflow-variables.local.json:/code/airflow-variables.local.json
+
+volumes:
+  data-volume:

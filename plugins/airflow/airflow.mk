@@ -85,7 +85,7 @@ airflow.init: .env ## Initialise Airflow in project
 	touch requirements.extra.txt
 
 	curl --fail -s \
-	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/docker-compose.yml" \
+	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/docker-compose.Airflow${AIRFLOW_MAJOR_VERSION}yml" \
 	-o docker-compose.yml;
 
 	curl --fail -s \

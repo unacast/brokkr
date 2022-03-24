@@ -53,5 +53,6 @@ services:
       - ${PWD}/airflow-variables.local.json:/code/airflow-variables.local.json
       - ${HOME}/.config:/home/airflow/.config:cached
 
+
 volumes:
   data-volume:
