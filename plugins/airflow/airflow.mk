@@ -7,7 +7,8 @@ AIRFLOW_DB_INIT_SENTINEL=$(AIRFLOW_WORKFOLDER)/db-init.sentinel
 AIRFLOW_DOCKER_COMPOSE_FILE ?= docker-compose.yml
 COMPOSE_PROJECT_NAME=$(notdir $(CURDIR))
 BROKKR_AIRFLOW_PLUGIN_VERSION=$(shell echo $(BROKKR_PLUGINS) | grep -o1 -Ei "airflow/airflow@([0-9a-z\._]+)" | cut -d "@" -f2)
-AIRFLOW_VERSION ?= 1.10.6
+AIRFLOW_VERSION ?= "2.2.3"
+AIRFLOW_MAJOR_VERSION=$(shell echo ${AIRFLOW_VERSION} | cut -d "." -f 1)
 AIRFLOW_DOCKER_IMAGE ?= unacast/airflow:$(AIRFLOW_VERSION)
 AIRFLOW_VIRTUAL_ENV_FOLDER ?= .venv
 AIRFLOW_VARIABLES_JSON ?= airflow-variables.local.json
@@ -84,7 +85,7 @@ airflow.init: .env ## Initialise Airflow in project
 	touch requirements.extra.txt
 
 	curl --fail -s \
-	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/docker-compose.yml" \
+	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/docker-compose.Airflow${AIRFLOW_MAJOR_VERSION}yml" \
 	-o docker-compose.yml;
 
 	curl --fail -s \
@@ -92,7 +93,7 @@ airflow.init: .env ## Initialise Airflow in project
 	-o docker-environment-variables.properties;
 
 	curl --fail -s \
-	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/Dockerfile" \
+	"https://raw.githubusercontent.com/$(BROKKR_REPO)/$(BROKKR_AIRFLOW_PLUGIN_VERSION)/plugins/airflow/docker/Dockerfile.Airflow${AIRFLOW_MAJOR_VERSION}" \
 	-o Dockerfile;
 
 	echo "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud-platform://?extra__google_cloud_platform__project=${GOOGLE_DEFAULT_PROJECT}" >> docker-environment-variables.properties
@@ -136,7 +137,11 @@ endif
 $(AIRFLOW_VARIABLES_SENTINEL): $(AIRFLOW_DB_INIT_SENTINEL) $(AIRFLOW_VARIABLES_JSON)
 	echo Import airflow variables from $(AIRFLOW_VARIABLES_JSON)
 	if [ -f "$(AIRFLOW_VARIABLES_JSON)" ]; then \
-	 	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -v ${PWD}/$(AIRFLOW_VARIABLES_JSON):/code/airflow-variables.json webserver airflow variables -i /code/airflow-variables.json; \
+		if [ $(AIRFLOW_MAJOR_VERSION) -eq "2" ]; then \
+			docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -v ${PWD}/$(AIRFLOW_VARIABLES_JSON):/code/airflow-variables.json webserver variables import /code/airflow-variables.json; \
+		else \
+			docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -v ${PWD}/$(AIRFLOW_VARIABLES_JSON):/code/airflow-variables.json webserver airflow variables -i /code/airflow-variables.json; \
+		fi
 	fi
 	echo Done importing variables
 	touch $@
@@ -148,7 +153,12 @@ $(AIRFLOW_DB_INIT_SENTINEL): $(AIRFLOW_INIT_CHECK_SENTINEL)
 	# Wait for MySQL to start
 	sleep 10
 	echo Initializing airflow MySQL database
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver airflow initdb
+	if [ $(AIRFLOW_MAJOR_VERSION) -eq "2" ]; then \
+		docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver db init; \
+		docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver users create -e admin@example.org -u airflow -p airflow -r Admin -f airflow -l airflow; \
+	else \
+		docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -e AIRFLOW__CORE__DAGS_FOLDER=/tmp/ webserver initdb; \
+	fi
 	touch $@
 
 $(AIRFLOW_BUILD_SENTINEL): $(AIRFLOW_REQUIREMENTS_EXTRA_TXT) $(AIRFLOW_REQUIREMENTS_TXT)
