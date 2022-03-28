@@ -37,7 +37,7 @@ airflow.test: $(AIRFLOW_BUILD_SENTINEL) $(AIRFLOW_INIT_CHECK_SENTINEL) ## Run th
 
 .PHONY: airflow.flake8
 airflow.flake8:$(AIRFLOW_BUILD_SENTINEL) $(AIRFLOW_INIT_CHECK_SENTINEL) ## Run the flake8 agains dags folder
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run -v ${PWD}/.flake8:/code/.flake8 --rm test flake8 /code/dags
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run -v ${PWD}/.flake8:/code/.flake8 --rm --entrypoint flake8 test /code/dags
 	@echo Flake 8 OK!s
 
 .PHONY: airflow.clean
