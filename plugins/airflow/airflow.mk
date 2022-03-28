@@ -141,7 +141,7 @@ $(AIRFLOW_VARIABLES_SENTINEL): $(AIRFLOW_DB_INIT_SENTINEL) $(AIRFLOW_VARIABLES_J
 			docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -v ${PWD}/$(AIRFLOW_VARIABLES_JSON):/code/airflow-variables.json webserver variables import /code/airflow-variables.json; \
 		else \
 			docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -v ${PWD}/$(AIRFLOW_VARIABLES_JSON):/code/airflow-variables.json webserver airflow variables -i /code/airflow-variables.json; \
-		fi
+		fi \
 	fi
 	echo Done importing variables
 	touch $@
