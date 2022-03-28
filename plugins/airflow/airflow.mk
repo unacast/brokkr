@@ -32,7 +32,7 @@ airflow.logs: $(AIRFLOW_INIT_CHECK_SENTINEL) ## Tail the local logs
 
 .PHONY: airflow.test
 airflow.test: $(AIRFLOW_BUILD_SENTINEL) $(AIRFLOW_INIT_CHECK_SENTINEL) ## Run the tests found in /test
-	set +e;docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm  test pytest --html=/code/output/report.html --junitxml=/code/output/junit.xml -rA /code/tests; \
+	set +e;docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm --entrypoint pytest test --html=/code/output/report.html --junitxml=/code/output/junit.xml -rA /code/tests; \
 	open $${PWD}/output/report.html
 
 .PHONY: airflow.flake8
