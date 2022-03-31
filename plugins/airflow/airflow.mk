@@ -51,7 +51,7 @@ airflow.clean: ## Removes .airflow folder and docker containers
 
 .PHONY: airflow.error
 airflow.error: $(AIRFLOW_INIT_CHECK_SENTINEL) ## List all dags, and filter errors
-	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run webserver airflow list_dags | grep -B5000 "DAGS"
+	docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm webserver list_dags | grep -B5000 "DAGS"
 
 .PHONY: airflow.build
 airflow.build: $(AIRFLOW_INIT_CHECK_SENTINEL) ## Rebuild docker images with --no-cache. Useful for debugging
@@ -66,8 +66,7 @@ airflow.venv: $(AIRFLOW_REQUIREMENTS_TXT) $(AIRFLOW_REQUIREMENTS_EXTRA_TXT) $(AI
 	virtualenv -p python3 $(AIRFLOW_VIRTUAL_ENV_FOLDER); \
 	source $(AIRFLOW_VIRTUAL_ENV_FOLDER)/bin/activate; \
 	export AIRFLOW_GPL_UNIDECODE="yes"; \
-	pip install -r $(AIRFLOW_REQUIREMENTS_TXT); \
-	pip install -r $(AIRFLOW_REQUIREMENTS_EXTRA_TXT);
+	pip install -r $(AIRFLOW_REQUIREMENTS_TXT) -r $(AIRFLOW_REQUIREMENTS_EXTRA_TXT);
 
 .PHONY: airflow.pip_install
 airflow.pip_install: $(AIRFLOW_REQUIREMENTS_TXT) ## Run pip install -r requirements.txt. This is helpful in a CI environment, where we don't use Docker.
@@ -140,7 +139,7 @@ $(AIRFLOW_VARIABLES_SENTINEL): $(AIRFLOW_DB_INIT_SENTINEL) $(AIRFLOW_VARIABLES_J
 		if [ $(AIRFLOW_MAJOR_VERSION) -eq "2" ]; then \
 			docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -v ${PWD}/$(AIRFLOW_VARIABLES_JSON):/code/airflow-variables.json webserver variables import /code/airflow-variables.json; \
 		else \
-			docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -v ${PWD}/$(AIRFLOW_VARIABLES_JSON):/code/airflow-variables.json webserver airflow variables -i /code/airflow-variables.json; \
+			docker-compose -f $(AIRFLOW_DOCKER_COMPOSE_FILE) run --rm -v ${PWD}/$(AIRFLOW_VARIABLES_JSON):/code/airflow-variables.json webserver variables -i /code/airflow-variables.json; \
 		fi \
 	fi
 	echo Done importing variables
